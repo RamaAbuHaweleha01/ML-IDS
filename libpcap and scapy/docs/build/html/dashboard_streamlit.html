@@ -1,0 +1,276 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dashboard_streamlit module &mdash; ML-Based IDS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ML-Based IDS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">dashboard_streamlit module</a><ul>
+<li><a class="reference internal" href="#dashboard_streamlit.ChartGenerator"><code class="docutils literal notranslate"><span class="pre">ChartGenerator</span></code></a><ul>
+<li><a class="reference internal" href="#dashboard_streamlit.ChartGenerator.create_attack_chart"><code class="docutils literal notranslate"><span class="pre">ChartGenerator.create_attack_chart()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.ChartGenerator.create_packet_rate_chart"><code class="docutils literal notranslate"><span class="pre">ChartGenerator.create_packet_rate_chart()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.ChartGenerator.create_packet_size_chart"><code class="docutils literal notranslate"><span class="pre">ChartGenerator.create_packet_size_chart()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.ChartGenerator.create_protocol_chart"><code class="docutils literal notranslate"><span class="pre">ChartGenerator.create_protocol_chart()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardDataManager"><code class="docutils literal notranslate"><span class="pre">DashboardDataManager</span></code></a><ul>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardDataManager.get_latest_data"><code class="docutils literal notranslate"><span class="pre">DashboardDataManager.get_latest_data()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardDataManager.get_packet_dataframe"><code class="docutils literal notranslate"><span class="pre">DashboardDataManager.get_packet_dataframe()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardDataManager.stop"><code class="docutils literal notranslate"><span class="pre">DashboardDataManager.stop()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI"><code class="docutils literal notranslate"><span class="pre">DashboardUI</span></code></a><ul>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_alerts"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_alerts()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_charts"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_charts()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_header"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_header()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_metrics"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_packet_table"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_packet_table()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_sidebar"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_sidebar()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.DashboardUI.display_system_status"><code class="docutils literal notranslate"><span class="pre">DashboardUI.display_system_status()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboard_streamlit.PacketDataGenerator"><code class="docutils literal notranslate"><span class="pre">PacketDataGenerator</span></code></a><ul>
+<li><a class="reference internal" href="#dashboard_streamlit.PacketDataGenerator.generate_packet"><code class="docutils literal notranslate"><span class="pre">PacketDataGenerator.generate_packet()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.PacketDataGenerator.reset_stats"><code class="docutils literal notranslate"><span class="pre">PacketDataGenerator.reset_stats()</span></code></a></li>
+<li><a class="reference internal" href="#dashboard_streamlit.PacketDataGenerator.update_stats"><code class="docutils literal notranslate"><span class="pre">PacketDataGenerator.update_stats()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboard_streamlit.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ML-Based IDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">dashboard_streamlit module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/dashboard_streamlit.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-dashboard_streamlit">
+<span id="dashboard-streamlit-module"></span><h1>dashboard_streamlit module<a class="headerlink" href="#module-dashboard_streamlit" title="Permalink to this heading"></a></h1>
+<p>Enhanced ML-IDS Streamlit Dashboard with Real-time Packet Monitoring
+OOP style with comprehensive packet information display</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="dashboard_streamlit.ChartGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dashboard_streamlit.</span></span><span class="sig-name descname"><span class="pre">ChartGenerator</span></span><a class="reference internal" href="_modules/dashboard_streamlit.html#ChartGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.ChartGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generates various charts for the dashboard using Plotly</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.ChartGenerator.create_attack_chart">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_attack_chart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attack_types</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#ChartGenerator.create_attack_chart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.ChartGenerator.create_attack_chart" title="Permalink to this definition"></a></dt>
+<dd><p>Create attack type distribution horizontal bar chart</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.ChartGenerator.create_packet_rate_chart">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_packet_rate_chart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rate_history</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#ChartGenerator.create_packet_rate_chart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.ChartGenerator.create_packet_rate_chart" title="Permalink to this definition"></a></dt>
+<dd><p>Create packet rate time series chart</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.ChartGenerator.create_packet_size_chart">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_packet_size_chart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packet_history</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#ChartGenerator.create_packet_size_chart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.ChartGenerator.create_packet_size_chart" title="Permalink to this definition"></a></dt>
+<dd><p>Create packet size distribution chart</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.ChartGenerator.create_protocol_chart">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_protocol_chart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protocols</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#ChartGenerator.create_protocol_chart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.ChartGenerator.create_protocol_chart" title="Permalink to this definition"></a></dt>
+<dd><p>Create protocol distribution donut chart</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardDataManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dashboard_streamlit.</span></span><span class="sig-name descname"><span class="pre">DashboardDataManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardDataManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardDataManager" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Manages data flow and updates for the dashboard.
+Handles simulation and real data reading.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardDataManager.get_latest_data">
+<span class="sig-name descname"><span class="pre">get_latest_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardDataManager.get_latest_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardDataManager.get_latest_data" title="Permalink to this definition"></a></dt>
+<dd><p>Get latest data from queue</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardDataManager.get_packet_dataframe">
+<span class="sig-name descname"><span class="pre">get_packet_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_packets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardDataManager.get_packet_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardDataManager.get_packet_dataframe" title="Permalink to this definition"></a></dt>
+<dd><p>Get recent packets as pandas DataFrame</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardDataManager.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardDataManager.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardDataManager.stop" title="Permalink to this definition"></a></dt>
+<dd><p>Stop data generation</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dashboard_streamlit.</span></span><span class="sig-name descname"><span class="pre">DashboardUI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Manages the Streamlit user interface components</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_alerts">
+<span class="sig-name descname"><span class="pre">display_alerts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_alerts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_alerts" title="Permalink to this definition"></a></dt>
+<dd><p>Display security alerts</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_charts">
+<span class="sig-name descname"><span class="pre">display_charts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_charts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_charts" title="Permalink to this definition"></a></dt>
+<dd><p>Display visualization charts</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_header">
+<span class="sig-name descname"><span class="pre">display_header</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_header"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_header" title="Permalink to this definition"></a></dt>
+<dd><p>Display dashboard header</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_metrics">
+<span class="sig-name descname"><span class="pre">display_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Display key metrics cards</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_packet_table">
+<span class="sig-name descname"><span class="pre">display_packet_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_packet_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_packet_table" title="Permalink to this definition"></a></dt>
+<dd><p>Display real-time packet table</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_sidebar">
+<span class="sig-name descname"><span class="pre">display_sidebar</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_sidebar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_sidebar" title="Permalink to this definition"></a></dt>
+<dd><p>Display sidebar controls</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.DashboardUI.display_system_status">
+<span class="sig-name descname"><span class="pre">display_system_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stats</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#DashboardUI.display_system_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.DashboardUI.display_system_status" title="Permalink to this definition"></a></dt>
+<dd><p>Display system status panel</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="dashboard_streamlit.PacketDataGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dashboard_streamlit.</span></span><span class="sig-name descname"><span class="pre">PacketDataGenerator</span></span><a class="reference internal" href="_modules/dashboard_streamlit.html#PacketDataGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.PacketDataGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generates realistic packet data for dashboard simulation.
+In a real system, this would read from actual packet capture logs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.PacketDataGenerator.generate_packet">
+<span class="sig-name descname"><span class="pre">generate_packet</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#PacketDataGenerator.generate_packet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.PacketDataGenerator.generate_packet" title="Permalink to this definition"></a></dt>
+<dd><p>Generate a realistic packet with metadata</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.PacketDataGenerator.reset_stats">
+<span class="sig-name descname"><span class="pre">reset_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#PacketDataGenerator.reset_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.PacketDataGenerator.reset_stats" title="Permalink to this definition"></a></dt>
+<dd><p>Reset all statistics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dashboard_streamlit.PacketDataGenerator.update_stats">
+<span class="sig-name descname"><span class="pre">update_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_packets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#PacketDataGenerator.update_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.PacketDataGenerator.update_stats" title="Permalink to this definition"></a></dt>
+<dd><p>Update statistics with new packets</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="dashboard_streamlit.main">
+<span class="sig-prename descclassname"><span class="pre">dashboard_streamlit.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dashboard_streamlit.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dashboard_streamlit.main" title="Permalink to this definition"></a></dt>
+<dd><p>Main Streamlit application</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Rama Abu-Haweleha.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

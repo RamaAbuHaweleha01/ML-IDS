@@ -1,0 +1,1204 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ids_service &mdash; ML-Based IDS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="../_static/doctools.js?v=888ff710"></script>
+      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ML-Based IDS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ML-Based IDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ids_service</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ids_service</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Enhanced ML-IDS Service with Telegram alerts and detailed packet display</span>
+<span class="sd">Object-Oriented Programming (OOP) implementation with comprehensive comments</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Import Statements</span>
+<span class="c1"># ============================================================================</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Directory Setup</span>
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Create necessary directories for the application</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s1">&#39;logs&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>      <span class="c1"># Store log files</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s1">&#39;models&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>    <span class="c1"># Store ML models</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>    <span class="c1"># Store configuration files</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>      <span class="c1"># Store data files</span>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Logging Configuration</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="setup_logging"><a class="viewcode-back" href="../ids_service.html#ids_service.setup_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_logging</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configure logging system with error handling</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Logger: Configured logger instance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Basic logging configuration with file and console handlers</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+            <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>  <span class="c1"># Log level</span>
+            <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(name)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>  <span class="c1"># Log format</span>
+            <span class="n">handlers</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="s1">&#39;logs/ids_service.log&#39;</span><span class="p">),</span>  <span class="c1"># File handler</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>  <span class="c1"># Console handler</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># Fallback to console-only logging if file logging fails</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Could not setup file logging: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+            <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(name)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">handlers</span><span class="o">=</span><span class="p">[</span><span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span></div>
+
+<span class="c1"># Initialize logger</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">setup_logging</span><span class="p">()</span>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Configuration Manager Class</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="ConfigManager"><a class="viewcode-back" href="../ids_service.html#ids_service.ConfigManager">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ConfigManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manages application configuration with Telegram support</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        interface (str): Network interface for packet capture</span>
+<span class="sd">        filter (str): Packet filter expression</span>
+<span class="sd">        promiscuous (bool): Promiscuous mode setting</span>
+<span class="sd">        alert_threshold (float): ML alert threshold (0.0-1.0)</span>
+<span class="sd">        model_path (str): Path to ML model file</span>
+<span class="sd">        telegram_enabled (bool): Telegram alerts enabled/disabled</span>
+<span class="sd">        telegram_token (str): Telegram bot token</span>
+<span class="sd">        telegram_chat_id (str): Telegram chat ID for alerts</span>
+<span class="sd">        display_packets (bool): Display packets on console</span>
+<span class="sd">        display_interval (int): Display interval in seconds</span>
+<span class="sd">        packet_format (str): Packet display format (&#39;simple&#39; or &#39;detailed&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize configuration manager with default values</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_path (str, optional): Path to configuration file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Default configuration values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="s1">&#39;eth0&#39;</span>            <span class="c1"># Default network interface</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter</span> <span class="o">=</span> <span class="s1">&#39;ip&#39;</span>                 <span class="c1"># Default packet filter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">promiscuous</span> <span class="o">=</span> <span class="kc">True</span>           <span class="c1"># Promiscuous mode enabled</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_threshold</span> <span class="o">=</span> <span class="mf">0.8</span>        <span class="c1"># Default alert threshold (80%)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_path</span> <span class="o">=</span> <span class="s1">&#39;models/randomforest_ids.pkl&#39;</span>  <span class="c1"># Default ML model path</span>
+        
+        <span class="c1"># Telegram configuration defaults</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="o">=</span> <span class="kc">False</span>     <span class="c1"># Telegram alerts disabled by default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>          <span class="c1"># Empty token by default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telegram_chat_id</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>        <span class="c1"># Empty chat ID by default</span>
+        
+        <span class="c1"># Display configuration defaults</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">display_packets</span> <span class="o">=</span> <span class="kc">True</span>       <span class="c1"># Show packets on console</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">display_interval</span> <span class="o">=</span> <span class="mi">1</span>         <span class="c1"># Display every 1 second</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">packet_format</span> <span class="o">=</span> <span class="s1">&#39;detailed&#39;</span>   <span class="c1"># Detailed display format</span>
+        
+        <span class="c1"># Load configuration from file if provided</span>
+        <span class="k">if</span> <span class="n">config_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">config_path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+        
+        <span class="c1"># Validate Telegram configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_telegram_config</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="ConfigManager.load_config"><a class="viewcode-back" href="../ids_service.html#ids_service.ConfigManager.load_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load configuration from JSON or YAML file</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_path (str): Path to configuration file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Handle YAML configuration files</span>
+            <span class="k">if</span> <span class="n">config_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.yaml&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">config_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.yml&#39;</span><span class="p">):</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                
+                <span class="c1"># Extract configuration from YAML structure</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;capture&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;interface&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alert_threshold</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ml&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;anomaly_threshold&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_threshold</span><span class="p">)</span>
+                
+                <span class="c1"># Extract Telegram configuration</span>
+                <span class="n">telegram_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;telegram&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span> <span class="o">=</span> <span class="n">telegram_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;token&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">telegram_chat_id</span> <span class="o">=</span> <span class="n">telegram_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chat_id&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="o">=</span> <span class="n">telegram_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;enabled&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                
+                <span class="c1"># Extract display configuration</span>
+                <span class="n">display_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;display&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">display_packets</span> <span class="o">=</span> <span class="n">display_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;show_packets&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">display_interval</span> <span class="o">=</span> <span class="n">display_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;interval&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">packet_format</span> <span class="o">=</span> <span class="n">display_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;detailed&#39;</span><span class="p">)</span>
+                
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Handle JSON configuration files</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                
+                <span class="c1"># Extract network settings</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;interface&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filter</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">promiscuous</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;promiscuous&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">promiscuous</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alert_threshold</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alert_threshold&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_threshold</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;model_path&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="p">)</span>
+                
+                <span class="c1"># Extract Telegram settings</span>
+                <span class="n">telegram_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;telegram&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span> <span class="o">=</span> <span class="n">telegram_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;token&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">telegram_chat_id</span> <span class="o">=</span> <span class="n">telegram_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chat_id&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="o">=</span> <span class="n">telegram_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;enabled&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                
+                <span class="c1"># Extract display settings</span>
+                <span class="n">display_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;display&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">display_packets</span> <span class="o">=</span> <span class="n">display_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;show_packets&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">display_interval</span> <span class="o">=</span> <span class="n">display_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;interval&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">packet_format</span> <span class="o">=</span> <span class="n">display_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;detailed&#39;</span><span class="p">)</span>
+            
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration loaded from </span><span class="si">{</span><span class="n">config_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not load config </span><span class="si">{</span><span class="n">config_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. Using defaults.&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ConfigManager.check_telegram_config"><a class="viewcode-back" href="../ids_service.html#ids_service.ConfigManager.check_telegram_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">check_telegram_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate Telegram configuration and enable/disable accordingly</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check if Telegram should be enabled and has valid credentials</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="ow">and</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span> <span class="ow">and</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram_chat_id</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;YOUR_TELEGRAM_BOT_TOKEN&quot;</span><span class="p">]</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram_chat_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;YOUR_CHAT_ID&quot;</span><span class="p">]):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram alerts enabled for chat ID: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">telegram_chat_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span><span class="p">:</span>  <span class="c1"># Configuration issue</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Telegram alerts disabled - invalid token or chat ID&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Telegram alerts disabled - not configured&quot;</span><span class="p">)</span></div></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Telegram Notifier Class</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="TelegramNotifier"><a class="viewcode-back" href="../ids_service.html#ids_service.TelegramNotifier">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">TelegramNotifier</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handles Telegram notifications with error handling and cooldown</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        token (str): Telegram bot token</span>
+<span class="sd">        chat_id (str): Telegram chat ID</span>
+<span class="sd">        base_url (str): Telegram API base URL</span>
+<span class="sd">        last_alert_time (dict): Timestamps of last alerts for cooldown</span>
+<span class="sd">        cooldown (int): Cooldown period between alerts (seconds)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">chat_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize Telegram notifier</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            token (str): Telegram bot token</span>
+<span class="sd">            chat_id (str): Telegram chat ID</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_id</span> <span class="o">=</span> <span class="n">chat_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://api.telegram.org/bot</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_alert_time</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Track alert timestamps for cooldown</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooldown</span> <span class="o">=</span> <span class="mi">60</span>  <span class="c1"># 60 seconds cooldown between same-type alerts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_connection</span><span class="p">()</span>  <span class="c1"># Test Telegram connection on initialization</span>
+    
+<div class="viewcode-block" id="TelegramNotifier.test_connection"><a class="viewcode-back" href="../ids_service.html#ids_service.TelegramNotifier.test_connection">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test Telegram bot connection</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if connection successful, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/getMe&quot;</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="n">bot_info</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">bot_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ok&#39;</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Connected to Telegram bot: @</span><span class="si">{</span><span class="n">bot_info</span><span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">][</span><span class="s1">&#39;username&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⚠️ Could not connect to Telegram bot&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Telegram connection error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="TelegramNotifier.send_alert"><a class="viewcode-back" href="../ids_service.html#ids_service.TelegramNotifier.send_alert">[docs]</a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Send alert to Telegram asynchronously</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alert_data (dict): Alert data dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if alert sent successfully, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Generate unique alert key for cooldown tracking</span>
+            <span class="n">alert_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attack_type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="c1"># Check if alert is on cooldown</span>
+            <span class="k">if</span> <span class="n">alert_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_alert_time</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_alert_time</span><span class="p">[</span><span class="n">alert_key</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooldown</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert on cooldown: </span><span class="si">{</span><span class="n">alert_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+            
+            <span class="c1"># Update last alert time</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_alert_time</span><span class="p">[</span><span class="n">alert_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_time</span>
+            
+            <span class="c1"># Format message for Telegram</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_message</span><span class="p">(</span><span class="n">alert_data</span><span class="p">)</span>
+            
+            <span class="c1"># Prepare API request</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/sendMessage&quot;</span>
+            <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;chat_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">,</span>
+                <span class="s1">&#39;parse_mode&#39;</span><span class="p">:</span> <span class="s1">&#39;HTML&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;disable_web_page_preview&#39;</span><span class="p">:</span> <span class="kc">True</span>
+            <span class="p">}</span>
+            
+            <span class="c1"># Execute request asynchronously</span>
+            <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+                <span class="kc">None</span><span class="p">,</span> 
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Check response</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📱 Telegram alert sent: </span><span class="si">{</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attack_type&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error_data</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Telegram API error </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;Unknown error&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+                
+        <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">Timeout</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;❌ Telegram request timeout&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Error sending Telegram alert: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format alert message for Telegram with HTML formatting</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alert_data (dict): Alert data dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Formatted HTML message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Emoji mapping for severity levels</span>
+        <span class="n">severity_emoji</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="s1">&#39;🛑&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="s1">&#39;🔴&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="s1">&#39;🟡&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LOW&#39;</span><span class="p">:</span> <span class="s1">&#39;🟢&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="s1">&#39;ℹ️&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="s1">&#39;📡&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Get severity and corresponding emoji</span>
+        <span class="n">severity</span> <span class="o">=</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;severity&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">)</span>
+        <span class="n">emoji</span> <span class="o">=</span> <span class="n">severity_emoji</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">severity</span><span class="p">,</span> <span class="s1">&#39;📡&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Helper function to escape HTML special characters</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">escape_html</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Escape HTML special characters to prevent XSS&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;amp;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;lt;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Format confidence percentage</span>
+        <span class="n">confidence</span> <span class="o">=</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;confidence&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">confidence_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">confidence</span><span class="p">)</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">confidence_str</span> <span class="o">=</span> <span class="s2">&quot;N/A&quot;</span>
+        
+        <span class="c1"># Build HTML formatted message</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">emoji</span><span class="si">}</span><span class="s2"> &lt;b&gt;🚨 ML-IDS SECURITY ALERT&lt;/b&gt; </span><span class="si">{</span><span class="n">emoji</span><span class="si">}</span>
+
+<span class="s2">&lt;b&gt;Attack Type:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attack_type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;Unknown&#39;</span><span class="p">))</span><span class="si">}</span>
+<span class="s2">&lt;b&gt;Severity:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="n">severity</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;b&gt;Confidence:&lt;/b&gt; </span><span class="si">{</span><span class="n">confidence_str</span><span class="si">}</span>
+
+<span class="s2">&lt;b&gt;📡 Packet Details:&lt;/b&gt;</span>
+<span class="s2">• &lt;b&gt;Source:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">))</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)))</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Destination:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">))</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)))</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Protocol:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">))</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Size:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;packet_size&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)))</span><span class="si">}</span><span class="s2"> bytes</span>
+
+<span class="s2">&lt;b&gt;⏰ Timestamp:&lt;/b&gt; </span><span class="si">{</span><span class="n">escape_html</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;timestamp&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()))</span><span class="si">}</span>
+
+<span class="s2">&lt;b&gt;🚨 Recommended Action:&lt;/b&gt;</span>
+<span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_action_recommendation</span><span class="p">(</span><span class="n">severity</span><span class="p">)</span><span class="si">}</span>
+
+<span class="s2">&lt;i&gt;Automated alert from ML-IDS Intrusion Detection System&lt;/i&gt;&quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="n">message</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_action_recommendation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">severity</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get action recommendation based on severity level</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            severity (str): Severity level</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Action recommendation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">recommendations</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="s1">&#39;🚨 &lt;b&gt;IMMEDIATE ACTION REQUIRED&lt;/b&gt; - Block source IP and investigate&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="s1">&#39;⚠️ &lt;b&gt;Urgent attention needed&lt;/b&gt; - Investigate immediately&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="s1">&#39;📊 &lt;b&gt;Monitor closely&lt;/b&gt; - Review logs and assess impact&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LOW&#39;</span><span class="p">:</span> <span class="s1">&#39;📝 &lt;b&gt;Log for review&lt;/b&gt; - No immediate action required&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="s1">&#39;ℹ️ &lt;b&gt;Informational&lt;/b&gt; - Routine monitoring&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="s1">&#39;📡 Monitoring normal traffic&#39;</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">recommendations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">severity</span><span class="p">,</span> <span class="s1">&#39;Monitor and investigate&#39;</span><span class="p">)</span></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># ML Predictor Class</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="MLPredictor"><a class="viewcode-back" href="../ids_service.html#ids_service.MLPredictor">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">MLPredictor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Machine Learning predictor with enhanced features</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        model_loaded (bool): Whether ML model is loaded</span>
+<span class="sd">        model: Loaded ML model object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize ML predictor</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            model_path (str, optional): Path to ML model file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_loaded</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># Load ML model if path provided</span>
+        <span class="k">if</span> <span class="n">model_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">joblib</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_loaded</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ ML model loaded from </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to load ML model: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_loaded</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># Fallback to simulation mode if no model loaded</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_loaded</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;⚠️ Running in simulation mode (no ML model)&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="MLPredictor.predict"><a class="viewcode-back" href="../ids_service.html#ids_service.MLPredictor.predict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make prediction on packet data</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict, optional): Packet information dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (prediction, confidence, severity, attack_type, features)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Use real ML model if loaded</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_loaded</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Extract features from packet info</span>
+                <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_features</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+                
+                <span class="c1"># Reshape features for sklearn model</span>
+                <span class="n">features_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">features_array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                
+                <span class="c1"># Get prediction probabilities if available</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;predict_proba&#39;</span><span class="p">):</span>
+                    <span class="n">probabilities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">features_array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">confidence</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">probabilities</span><span class="p">[</span><span class="n">prediction</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">confidence</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">)</span>
+                
+                <span class="c1"># Determine result based on prediction</span>
+                <span class="k">if</span> <span class="n">prediction</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;Normal&quot;</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="s2">&quot;None&quot;</span><span class="p">,</span> <span class="s2">&quot;Normal&quot;</span><span class="p">,</span> <span class="n">features</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">attack_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DDoS&#39;</span><span class="p">,</span> <span class="s1">&#39;PortScan&#39;</span><span class="p">,</span> <span class="s1">&#39;Malware&#39;</span><span class="p">,</span> <span class="s1">&#39;BruteForce&#39;</span><span class="p">,</span> <span class="s1">&#39;SQLi&#39;</span><span class="p">,</span> <span class="s1">&#39;XSS&#39;</span><span class="p">]</span>
+                    <span class="n">attack</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">attack_types</span><span class="p">)</span>
+                    
+                    <span class="c1"># Determine severity based on attack type and confidence</span>
+                    <span class="n">severity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_severity</span><span class="p">(</span><span class="n">attack</span><span class="p">,</span> <span class="n">confidence</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s2">&quot;Anomalous&quot;</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">severity</span><span class="p">,</span> <span class="n">attack</span><span class="p">,</span> <span class="n">features</span>
+                    
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Prediction error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Fall through to simulation</span>
+        
+        <span class="c1"># Simulation mode (used when no ML model is loaded)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulate_prediction</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span></div>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract features from packet information</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict): Packet information</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list: Extracted features</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="n">packet_info</span><span class="p">:</span>
+            <span class="c1"># Basic packet features</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;packet_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol_num&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ttl&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">))</span>
+            
+            <span class="c1"># Check if ports are well-known</span>
+            <span class="n">well_known_ports</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">443</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">143</span><span class="p">]</span>
+            <span class="n">src_port</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">dst_port</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">src_port</span> <span class="ow">in</span> <span class="n">well_known_ports</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">dst_port</span> <span class="ow">in</span> <span class="n">well_known_ports</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1"># Fill remaining features with random values</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">48</span><span class="p">:</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">features</span><span class="p">[:</span><span class="mi">48</span><span class="p">]</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_severity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">,</span> <span class="n">confidence</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine severity level based on attack type and confidence</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            attack_type (str): Type of attack detected</span>
+<span class="sd">            confidence (float): Confidence score (0.0-1.0)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Severity level</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define severity rules for each attack type</span>
+        <span class="n">severity_rules</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;DDoS&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">},</span>
+            <span class="s1">&#39;Malware&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="mf">0.85</span><span class="p">},</span>
+            <span class="s1">&#39;BruteForce&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span> <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">},</span>
+            <span class="s1">&#39;PortScan&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;LOW&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.85</span><span class="p">},</span>
+            <span class="s1">&#39;SQLi&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.75</span><span class="p">,</span> <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">},</span>
+            <span class="s1">&#39;XSS&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span> <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Get rules for specific attack type, default to medium/high</span>
+        <span class="n">rules</span> <span class="o">=</span> <span class="n">severity_rules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attack_type</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span> <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">})</span>
+        
+        <span class="c1"># Determine severity based on confidence thresholds</span>
+        <span class="k">if</span> <span class="s1">&#39;CRITICAL&#39;</span> <span class="ow">in</span> <span class="n">rules</span> <span class="ow">and</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="n">rules</span><span class="p">[</span><span class="s1">&#39;CRITICAL&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="s1">&#39;CRITICAL&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;HIGH&#39;</span> <span class="ow">in</span> <span class="n">rules</span> <span class="ow">and</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="n">rules</span><span class="p">[</span><span class="s1">&#39;HIGH&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="s1">&#39;HIGH&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;MEDIUM&#39;</span> <span class="ow">in</span> <span class="n">rules</span> <span class="ow">and</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="n">rules</span><span class="p">[</span><span class="s1">&#39;MEDIUM&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="s1">&#39;MEDIUM&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;LOW&#39;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_simulate_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate prediction for testing/demo purposes</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict, optional): Packet information</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Simulated prediction results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Simulate 5% anomaly rate</span>
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mf">0.95</span><span class="p">:</span>
+            <span class="n">attack_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DDoS&#39;</span><span class="p">,</span> <span class="s1">&#39;PortScan&#39;</span><span class="p">,</span> <span class="s1">&#39;Malware&#39;</span><span class="p">,</span> <span class="s1">&#39;BruteForce&#39;</span><span class="p">,</span> <span class="s1">&#39;SQLi&#39;</span><span class="p">,</span> <span class="s1">&#39;XSS&#39;</span><span class="p">]</span>
+            <span class="n">attack</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">attack_types</span><span class="p">)</span>
+            <span class="n">confidence</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">)</span>
+            <span class="n">severity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_severity</span><span class="p">(</span><span class="n">attack</span><span class="p">,</span> <span class="n">confidence</span><span class="p">)</span>
+            <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_features</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;Anomalous&quot;</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">severity</span><span class="p">,</span> <span class="n">attack</span><span class="p">,</span> <span class="n">features</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">confidence</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">)</span>
+            <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_features</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;Normal&quot;</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="s2">&quot;None&quot;</span><span class="p">,</span> <span class="s2">&quot;Normal&quot;</span><span class="p">,</span> <span class="n">features</span></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Packet Display Class</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="PacketDisplay"><a class="viewcode-back" href="../ids_service.html#ids_service.PacketDisplay">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PacketDisplay</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handles packet display formatting with different styles</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="PacketDisplay.format_simple"><a class="viewcode-back" href="../ids_service.html#ids_service.PacketDisplay.format_simple">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_simple</span><span class="p">(</span><span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format packet in simple view</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict): Packet information</span>
+<span class="sd">            prediction_info (tuple, optional): Prediction results</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Formatted packet string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M:%S.</span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">proto</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span> <span class="s1">&#39;UNKNOWN&#39;</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;packet_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1"># Color code anomalies</span>
+        <span class="k">if</span> <span class="n">prediction_info</span> <span class="ow">and</span> <span class="n">prediction_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Anomalous&quot;</span><span class="p">:</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span>  <span class="c1"># Red for anomalies</span>
+            <span class="n">reset</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">🚨 ANOMALY</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;✓ NORMAL&quot;</span>
+        
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">dst</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">proto</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">size</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2"> bytes | </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">&quot;</span></div>
+    
+<div class="viewcode-block" id="PacketDisplay.format_detailed"><a class="viewcode-back" href="../ids_service.html#ids_service.PacketDisplay.format_detailed">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_detailed</span><span class="p">(</span><span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format packet in detailed view</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict): Packet information</span>
+<span class="sd">            prediction_info (tuple, optional): Prediction results</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Formatted packet string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S.</span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;📦 PACKET CAPTURED: </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Source:      </span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Destination: </span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Protocol:    </span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;UNKNOWN&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol_num&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Size:        </span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;packet_size&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2"> bytes&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;TTL:         </span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ttl&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">64</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Flags:       </span><span class="si">{</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;flags&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add prediction information if available</span>
+        <span class="k">if</span> <span class="n">prediction_info</span><span class="p">:</span>
+            <span class="n">prediction</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">severity</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">prediction_info</span>
+            
+            <span class="k">if</span> <span class="n">prediction</span> <span class="o">==</span> <span class="s2">&quot;Anomalous&quot;</span><span class="p">:</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span>  <span class="c1"># Red for anomalies</span>
+                <span class="n">reset</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">🚨 INTRUSION DETECTED</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">Attack Type:  </span><span class="si">{</span><span class="n">attack_type</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">Severity:     </span><span class="si">{</span><span class="n">severity</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">Confidence:   </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">ML Decision:  </span><span class="si">{</span><span class="n">prediction</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ ML Analysis: Normal Traffic&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Confidence:   </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Real-Time IDS Main Class</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="RealTimeIDS"><a class="viewcode-back" href="../ids_service.html#ids_service.RealTimeIDS">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">RealTimeIDS</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enhanced Real-time Intrusion Detection System</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        config (ConfigManager): Configuration manager instance</span>
+<span class="sd">        ml_predictor (MLPredictor): ML predictor instance</span>
+<span class="sd">        telegram (TelegramNotifier or None): Telegram notifier instance</span>
+<span class="sd">        display (PacketDisplay): Packet display instance</span>
+<span class="sd">        stats (dict): System statistics</span>
+<span class="sd">        running (bool): System running state</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize Real-Time IDS</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_path (str, optional): Path to configuration file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;🚀 Initializing Enhanced ML-IDS&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize configuration manager</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">ConfigManager</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize ML predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml_predictor</span> <span class="o">=</span> <span class="n">MLPredictor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">model_path</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize Telegram notifier if enabled</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telegram</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">telegram_enabled</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telegram</span> <span class="o">=</span> <span class="n">TelegramNotifier</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">telegram_token</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">telegram_chat_id</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># Initialize packet display</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">display</span> <span class="o">=</span> <span class="n">PacketDisplay</span><span class="p">()</span>
+        
+        <span class="c1"># Initialize statistics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;packets_processed&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;anomalies_detected&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+            <span class="s1">&#39;packet_rate&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;last_display&#39;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+            <span class="s1">&#39;packet_queue&#39;</span><span class="p">:</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="mi">100</span><span class="p">),</span>
+            <span class="s1">&#39;model_loaded&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml_predictor</span><span class="o">.</span><span class="n">model_loaded</span><span class="p">,</span>
+            <span class="s1">&#39;telegram_alerts_sent&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;telegram_alerts_failed&#39;</span><span class="p">:</span> <span class="mi">0</span>
+        <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        
+<div class="viewcode-block" id="RealTimeIDS.start_capture"><a class="viewcode-back" href="../ids_service.html#ids_service.RealTimeIDS.start_capture">[docs]</a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start_capture</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Start enhanced packet capture and analysis loop</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;📡 Starting enhanced packet capture...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Display startup banner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_display_startup_banner</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># Initialize counters</span>
+        <span class="n">packet_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">last_update</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">last_stat_display</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">packet_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Main capture loop</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+                <span class="c1"># Simulate packet arrival (for demo purposes)</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.02</span><span class="p">)</span>  <span class="c1"># ~50 packets/sec for better display</span>
+                
+                <span class="c1"># Update packet counters</span>
+                <span class="n">packet_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">packet_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packets_processed&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+                <span class="c1"># Generate simulated packet information</span>
+                <span class="n">packet_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_packet_info</span><span class="p">(</span><span class="n">packet_counter</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packet_queue&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+                
+                <span class="c1"># Make ML prediction</span>
+                <span class="n">prediction_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml_predictor</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+                <span class="n">prediction</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">severity</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">prediction_info</span>
+                
+                <span class="c1"># Display packet based on configuration</span>
+                <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">display_packets</span> <span class="ow">and</span> 
+                    <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;last_display&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">display_interval</span><span class="p">):</span>
+                    
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">packet_format</span> <span class="o">==</span> <span class="s1">&#39;detailed&#39;</span><span class="p">:</span>
+                            <span class="n">display_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">format_detailed</span><span class="p">(</span><span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">display_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">format_simple</span><span class="p">(</span><span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="p">)</span>
+                        
+                        <span class="nb">print</span><span class="p">(</span><span class="n">display_text</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;last_display&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_time</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Display error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="c1"># Fallback to simple display</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">] Packet #</span><span class="si">{</span><span class="n">packet_counter</span><span class="si">}</span><span class="s2"> captured&quot;</span><span class="p">)</span>
+                
+                <span class="c1"># Handle anomalies above threshold</span>
+                <span class="k">if</span> <span class="n">prediction</span> <span class="o">==</span> <span class="s2">&quot;Anomalous&quot;</span> <span class="ow">and</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">alert_threshold</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_anomaly</span><span class="p">(</span><span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="p">)</span>
+                
+                <span class="c1"># Update packet rate every second</span>
+                <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">last_update</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packet_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">packet_count</span>
+                    <span class="n">packet_count</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">last_update</span> <span class="o">=</span> <span class="n">current_time</span>
+                
+                <span class="c1"># Display statistics every 15 seconds</span>
+                <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">last_stat_display</span> <span class="o">&gt;=</span> <span class="mf">15.0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_display_statistics</span><span class="p">()</span>
+                    <span class="n">last_stat_display</span> <span class="o">=</span> <span class="n">current_time</span>
+        
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">🛑 Capture interrupted by user&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Capture error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">❌ Fatal error: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span></div>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_display_startup_banner</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Display startup banner with system information&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;─&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;🚀 ML-IDS INTRUSION DETECTION SYSTEM&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;─&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📡 Interface:    </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">interface</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🎯 Filter:       </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⚡ Threshold:    </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">alert_threshold</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;👁️  Display:      </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">packet_format</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> format&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🤖 Telegram:     </span><span class="si">{</span><span class="s1">&#39;✅ ENABLED&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">telegram_enabled</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;⚠️ DISABLED&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🧠 ML Model:     </span><span class="si">{</span><span class="s1">&#39;✅ Loaded&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">ml_predictor</span><span class="o">.</span><span class="n">model_loaded</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;⚠️ Simulation&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;─&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">📡 Starting capture... Press Ctrl+C to stop</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_packet_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate realistic packet information for simulation</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_id (int): Packet sequence number</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Packet information dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Common protocols with weights for realistic distribution</span>
+        <span class="n">protocols</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;TCP&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;UDP&#39;</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;ICMP&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;HTTP&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;HTTPS&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;DNS&#39;</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Weighted random choice for protocol</span>
+        <span class="n">choices</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">[(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">protocols</span><span class="p">])</span>
+        <span class="n">protocol</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">choices</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">proto_num</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">protocols</span> <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">protocol</span><span class="p">)</span>
+        
+        <span class="c1"># Generate IP addresses (70% internal, 30% external)</span>
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.7</span><span class="p">:</span>
+            <span class="n">src_ip</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;192.168.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">src_ip</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">223</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="n">dst_ip</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;10.0.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="c1"># Common network ports</span>
+        <span class="n">common_ports</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">443</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">143</span><span class="p">,</span> <span class="mi">3389</span><span class="p">,</span> <span class="mi">8080</span><span class="p">,</span> <span class="mi">8443</span><span class="p">]</span>
+        
+        <span class="c1"># Build packet information dictionary</span>
+        <span class="n">packet_info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;packet_id&#39;</span><span class="p">:</span> <span class="n">packet_id</span><span class="p">,</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;src_ip&#39;</span><span class="p">:</span> <span class="n">src_ip</span><span class="p">,</span>
+            <span class="s1">&#39;dst_ip&#39;</span><span class="p">:</span> <span class="n">dst_ip</span><span class="p">,</span>
+            <span class="s1">&#39;src_port&#39;</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">common_ports</span> <span class="o">+</span> <span class="p">[</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">65535</span><span class="p">)]),</span>
+            <span class="s1">&#39;dst_port&#39;</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">common_ports</span><span class="p">),</span>
+            <span class="s1">&#39;protocol&#39;</span><span class="p">:</span> <span class="n">protocol</span><span class="p">,</span>
+            <span class="s1">&#39;protocol_num&#39;</span><span class="p">:</span> <span class="n">proto_num</span><span class="p">,</span>
+            <span class="s1">&#39;packet_size&#39;</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">1500</span><span class="p">),</span>
+            <span class="s1">&#39;ttl&#39;</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">255</span><span class="p">),</span>
+            <span class="s1">&#39;flags&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_flags</span><span class="p">(</span><span class="n">protocol</span><span class="p">),</span>
+            <span class="s1">&#39;flow_key&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">src_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span><span class="w"> </span><span class="mi">65535</span><span class="p">)</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">dst_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">common_ports</span><span class="p">)</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">proto_num</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">}</span>
+        
+        <span class="k">return</span> <span class="n">packet_info</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">protocol</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate protocol-specific flags</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            protocol (str): Protocol name</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Protocol flags</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">protocol</span> <span class="o">==</span> <span class="s1">&#39;TCP&#39;</span><span class="p">:</span>
+            <span class="n">flag_combos</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">[</span><span class="s1">&#39;SYN&#39;</span><span class="p">],</span>
+                <span class="p">[</span><span class="s1">&#39;SYN&#39;</span><span class="p">,</span> <span class="s1">&#39;ACK&#39;</span><span class="p">],</span>
+                <span class="p">[</span><span class="s1">&#39;ACK&#39;</span><span class="p">],</span>
+                <span class="p">[</span><span class="s1">&#39;FIN&#39;</span><span class="p">,</span> <span class="s1">&#39;ACK&#39;</span><span class="p">],</span>
+                <span class="p">[</span><span class="s1">&#39;PSH&#39;</span><span class="p">,</span> <span class="s1">&#39;ACK&#39;</span><span class="p">],</span>
+                <span class="p">[</span><span class="s1">&#39;RST&#39;</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">flag_combos</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">protocol</span> <span class="o">==</span> <span class="s1">&#39;ICMP&#39;</span><span class="p">:</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ECHO_REQUEST&#39;</span><span class="p">,</span> <span class="s1">&#39;ECHO_REPLY&#39;</span><span class="p">,</span> <span class="s1">&#39;DEST_UNREACHABLE&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;N/A&#39;</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_handle_anomaly</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handle detected anomaly</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict): Packet information</span>
+<span class="sd">            prediction_info (tuple): Prediction results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prediction</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">severity</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">prediction_info</span>
+        
+        <span class="c1"># Update anomaly statistics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;anomalies_detected&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="c1"># Create alert data dictionary</span>
+        <span class="n">alert_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="o">**</span><span class="n">packet_info</span><span class="p">,</span>
+            <span class="s1">&#39;prediction&#39;</span><span class="p">:</span> <span class="n">prediction</span><span class="p">,</span>
+            <span class="s1">&#39;confidence&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">confidence</span><span class="p">),</span>
+            <span class="s1">&#39;severity&#39;</span><span class="p">:</span> <span class="n">severity</span><span class="p">,</span>
+            <span class="s1">&#39;attack_type&#39;</span><span class="p">:</span> <span class="n">attack_type</span><span class="p">,</span>
+            <span class="s1">&#39;flow_key&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;flow_key&#39;</span><span class="p">,</span> <span class="s1">&#39;N/A&#39;</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Log the alert</span>
+        <span class="n">alert_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;🚨 ALERT: </span><span class="si">{</span><span class="n">attack_type</span><span class="si">}</span><span class="s2"> | Severity: </span><span class="si">{</span><span class="n">severity</span><span class="si">}</span><span class="s2"> | Confidence: </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">alert_msg</span><span class="p">)</span>
+        
+        <span class="c1"># Display alert on console (single line between alerts)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_display_alert</span><span class="p">(</span><span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="p">)</span>
+        
+        <span class="c1"># Send Telegram alert if enabled</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">telegram</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">success</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">telegram</span><span class="o">.</span><span class="n">send_alert</span><span class="p">(</span><span class="n">alert_data</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_sent&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   📱 Telegram alert sent successfully!&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_failed&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ❌ Failed to send Telegram alert&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Telegram sending error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_failed&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="c1"># Save alert to log files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_alert</span><span class="p">(</span><span class="n">alert_data</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_display_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">,</span> <span class="n">prediction_info</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Display security alert on console with simplified formatting</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info (dict): Packet information</span>
+<span class="sd">            prediction_info (tuple): Prediction results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">severity</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">prediction_info</span>
+        
+        <span class="c1"># Color mapping for severity levels</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span><span class="p">,</span>  <span class="c1"># Red</span>
+            <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[93m&#39;</span><span class="p">,</span>      <span class="c1"># Yellow</span>
+            <span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[96m&#39;</span><span class="p">,</span>    <span class="c1"># Cyan</span>
+            <span class="s1">&#39;LOW&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[92m&#39;</span><span class="p">,</span>       <span class="c1"># Green</span>
+            <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[94m&#39;</span><span class="p">,</span>      <span class="c1"># Blue</span>
+            <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>        <span class="c1"># Reset</span>
+        <span class="p">}</span>
+        
+        <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">severity</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span><span class="p">)</span>
+        <span class="n">reset</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
+        
+        <span class="c1"># Format confidence safely</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">confidence_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">confidence</span><span class="p">)</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">confidence_str</span> <span class="o">=</span> <span class="s2">&quot;N/A&quot;</span>
+        
+        <span class="c1"># SIMPLIFIED ALERT FORMAT - Single line only between alerts</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">    🚨 SECURITY ALERT DETECTED 🚨    </span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Attack Type:  </span><span class="si">{</span><span class="n">attack_type</span><span class="si">:</span><span class="s2">&lt;54</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Severity:     </span><span class="si">{</span><span class="n">severity</span><span class="si">:</span><span class="s2">&lt;54</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Confidence:   </span><span class="si">{</span><span class="n">confidence_str</span><span class="si">:</span><span class="s2">&lt;54</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Source:       </span><span class="si">{</span><span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;src_ip&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;39</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Destination:  </span><span class="si">{</span><span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;39</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Protocol:     </span><span class="si">{</span><span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;protocol&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;54</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">│ Time:         </span><span class="si">{</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M:%S.</span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;54</span><span class="si">}</span><span class="s2"> │</span><span class="si">{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_display_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Display current system statistics&quot;&quot;&quot;</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packets_processed&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">elapsed</span> <span class="k">if</span> <span class="n">elapsed</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+        
+        <span class="n">stats_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span>
+<span class="s2">📊 ML-IDS REAL-TIME STATISTICS</span>
+<span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span>
+<span class="s2">• Packets Processed:   </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packets_processed&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span>
+<span class="s2">• Anomalies Detected:  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;anomalies_detected&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">• Current Rate:        </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packet_rate&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> packets/sec</span>
+<span class="s2">• Average Rate:        </span><span class="si">{</span><span class="n">rate</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> packets/sec</span>
+<span class="s2">• Uptime:              </span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> seconds</span>
+<span class="s2">• ML Model:            </span><span class="si">{</span><span class="s1">&#39;✅ Loaded&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;model_loaded&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;⚠️ Simulation&#39;</span><span class="si">}</span>
+<span class="s2">• Telegram Alerts:     </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_sent&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> sent, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_failed&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> failed</span>
+<span class="si">{</span><span class="s1">&#39;─&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">70</span><span class="si">}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">stats_text</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_log_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Log alert to JSON and text log files</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alert_data (dict): Alert data to log</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create log entry dictionary</span>
+        <span class="n">log_entry</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;attack_type&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attack_type&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;severity&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;severity&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;confidence&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;confidence&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+            <span class="s1">&#39;src_ip&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;dst_ip&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;src_port&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;dst_port&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;protocol&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;packet_size&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;packet_size&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;flow_key&#39;</span><span class="p">:</span> <span class="n">alert_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;flow_key&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;telegram_sent&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">telegram_enabled</span>
+        <span class="p">}</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Log to JSON file (machine-readable)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;logs/alerts.json&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">log_entry</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            <span class="c1"># Log to text file (human-readable)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;logs/alerts.log&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;attack_type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;severity&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;confidence&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;src_ip&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> → &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">log_entry</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Error writing alert: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="RealTimeIDS.stop"><a class="viewcode-back" href="../ids_service.html#ids_service.RealTimeIDS.stop">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop the IDS system&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;🛑 IDS service stopped&quot;</span><span class="p">)</span></div></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Signal Handler Function</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="signal_handler"><a class="viewcode-back" href="../ids_service.html#ids_service.signal_handler">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">signal_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handle shutdown signals (SIGINT, SIGTERM)</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        signum: Signal number</span>
+<span class="sd">        frame: Current stack frame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">🛑 Shutting down IDS...&quot;</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Main Entry Point</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../ids_service.html#ids_service.main">[docs]</a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main entry point for the ML-IDS application</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Setup command line argument parser</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Enhanced ML-based Intrusion Detection System&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--config&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;config/config.yaml&#39;</span><span class="p">,</span>
+                       <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Configuration file path (default: config/config.yaml)&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--interface&#39;</span><span class="p">,</span> <span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Network interface&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;-t&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Alert threshold&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--display&#39;</span><span class="p">,</span> <span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;simple&#39;</span><span class="p">,</span> <span class="s1">&#39;detailed&#39;</span><span class="p">],</span> 
+                       <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Display format&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--interval&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Display interval in seconds&#39;</span><span class="p">)</span>
+    
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    
+    <span class="c1"># Setup signal handlers for graceful shutdown</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal_handler</span><span class="p">)</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">signal_handler</span><span class="p">)</span>
+    
+    <span class="c1"># Initialize IDS system</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">RealTimeIDS</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+    
+    <span class="c1"># Override configuration with command line arguments</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">interface</span><span class="p">:</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">interface</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">alert_threshold</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">threshold</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">display</span><span class="p">:</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">packet_format</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">display</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">interval</span><span class="p">:</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">display_interval</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">interval</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Start packet capture and analysis</span>
+        <span class="k">await</span> <span class="n">ids</span><span class="o">.</span><span class="n">start_capture</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">🛑 Stopping IDS...&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">❌ Fatal error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="c1"># Stop the IDS system</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        
+        <span class="c1"># Display final statistics</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">ids</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;─&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;📊 FINAL STATISTICS&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;─&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total packets processed:  </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packets_processed&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Anomalies detected:      </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;anomalies_detected&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total time:              </span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average rate:            </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;packets_processed&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> packets/sec&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram alerts sent:    </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_sent&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram alerts failed:  </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;telegram_alerts_failed&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;─&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">📁 Log files created:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  • logs/ids_service.log - System logs&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  • logs/alerts.json - JSON alert log&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  • logs/alerts.log - Text alert log&quot;</span><span class="p">)</span></div>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># Application Entry Point</span>
+<span class="c1"># ============================================================================</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Rama Abu-Haweleha.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

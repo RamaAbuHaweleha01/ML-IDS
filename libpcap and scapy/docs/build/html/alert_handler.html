@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>alert_handler module &mdash; ML-Based IDS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ML-Based IDS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">alert_handler module</a><ul>
+<li><a class="reference internal" href="#alert_handler.Alert"><code class="docutils literal notranslate"><span class="pre">Alert</span></code></a><ul>
+<li><a class="reference internal" href="#alert_handler.Alert.additional_info"><code class="docutils literal notranslate"><span class="pre">Alert.additional_info</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.attack_type"><code class="docutils literal notranslate"><span class="pre">Alert.attack_type</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.confidence"><code class="docutils literal notranslate"><span class="pre">Alert.confidence</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.console_displayed"><code class="docutils literal notranslate"><span class="pre">Alert.console_displayed</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.dst_ip"><code class="docutils literal notranslate"><span class="pre">Alert.dst_ip</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.dst_port"><code class="docutils literal notranslate"><span class="pre">Alert.dst_port</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.flow_key"><code class="docutils literal notranslate"><span class="pre">Alert.flow_key</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.logged_to_file"><code class="docutils literal notranslate"><span class="pre">Alert.logged_to_file</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.packet_length"><code class="docutils literal notranslate"><span class="pre">Alert.packet_length</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.protocol"><code class="docutils literal notranslate"><span class="pre">Alert.protocol</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.severity"><code class="docutils literal notranslate"><span class="pre">Alert.severity</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.src_ip"><code class="docutils literal notranslate"><span class="pre">Alert.src_ip</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.src_port"><code class="docutils literal notranslate"><span class="pre">Alert.src_port</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.telegram_sent"><code class="docutils literal notranslate"><span class="pre">Alert.telegram_sent</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.timestamp"><code class="docutils literal notranslate"><span class="pre">Alert.timestamp</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.Alert.to_dict"><code class="docutils literal notranslate"><span class="pre">Alert.to_dict()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alert_handler.AlertHandler"><code class="docutils literal notranslate"><span class="pre">AlertHandler</span></code></a><ul>
+<li><a class="reference internal" href="#alert_handler.AlertHandler.check_cooldown"><code class="docutils literal notranslate"><span class="pre">AlertHandler.check_cooldown()</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.AlertHandler.cleanup"><code class="docutils literal notranslate"><span class="pre">AlertHandler.cleanup()</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.AlertHandler.create_alert"><code class="docutils literal notranslate"><span class="pre">AlertHandler.create_alert()</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.AlertHandler.get_alert_stats"><code class="docutils literal notranslate"><span class="pre">AlertHandler.get_alert_stats()</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.AlertHandler.send_alert"><code class="docutils literal notranslate"><span class="pre">AlertHandler.send_alert()</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.AlertHandler.setup_alert_logging"><code class="docutils literal notranslate"><span class="pre">AlertHandler.setup_alert_logging()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alert_handler.SeverityLevel"><code class="docutils literal notranslate"><span class="pre">SeverityLevel</span></code></a><ul>
+<li><a class="reference internal" href="#alert_handler.SeverityLevel.CRITICAL"><code class="docutils literal notranslate"><span class="pre">SeverityLevel.CRITICAL</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.SeverityLevel.HIGH"><code class="docutils literal notranslate"><span class="pre">SeverityLevel.HIGH</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.SeverityLevel.INFO"><code class="docutils literal notranslate"><span class="pre">SeverityLevel.INFO</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.SeverityLevel.LOW"><code class="docutils literal notranslate"><span class="pre">SeverityLevel.LOW</span></code></a></li>
+<li><a class="reference internal" href="#alert_handler.SeverityLevel.MEDIUM"><code class="docutils literal notranslate"><span class="pre">SeverityLevel.MEDIUM</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ML-Based IDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">alert_handler module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/alert_handler.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-alert_handler">
+<span id="alert-handler-module"></span><h1>alert_handler module<a class="headerlink" href="#module-alert_handler" title="Permalink to this heading"></a></h1>
+<p>Alert handler module for sending alerts via multiple channels (Telegram, console, file).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="alert_handler.Alert">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alert_handler.</span></span><span class="sig-name descname"><span class="pre">Alert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attack_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flow_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protocol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packet_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">telegram_sent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">console_displayed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logged_to_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/alert_handler.html#Alert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.Alert" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Alert data structure</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.additional_info">
+<span class="sig-name descname"><span class="pre">additional_info</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#alert_handler.Alert.additional_info" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.attack_type">
+<span class="sig-name descname"><span class="pre">attack_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.attack_type" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.confidence">
+<span class="sig-name descname"><span class="pre">confidence</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#alert_handler.Alert.confidence" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.console_displayed">
+<span class="sig-name descname"><span class="pre">console_displayed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#alert_handler.Alert.console_displayed" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.dst_ip">
+<span class="sig-name descname"><span class="pre">dst_ip</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.dst_ip" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.dst_port">
+<span class="sig-name descname"><span class="pre">dst_port</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#alert_handler.Alert.dst_port" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.flow_key">
+<span class="sig-name descname"><span class="pre">flow_key</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.flow_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.logged_to_file">
+<span class="sig-name descname"><span class="pre">logged_to_file</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#alert_handler.Alert.logged_to_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.packet_length">
+<span class="sig-name descname"><span class="pre">packet_length</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#alert_handler.Alert.packet_length" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.protocol">
+<span class="sig-name descname"><span class="pre">protocol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.protocol" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.severity">
+<span class="sig-name descname"><span class="pre">severity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.severity" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.src_ip">
+<span class="sig-name descname"><span class="pre">src_ip</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.src_ip" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.src_port">
+<span class="sig-name descname"><span class="pre">src_port</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#alert_handler.Alert.src_port" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.telegram_sent">
+<span class="sig-name descname"><span class="pre">telegram_sent</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#alert_handler.Alert.telegram_sent" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.Alert.timestamp">
+<span class="sig-name descname"><span class="pre">timestamp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#alert_handler.Alert.timestamp" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.Alert.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/alert_handler.html#Alert.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.Alert.to_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Convert alert to dictionary</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alert_handler.</span></span><span class="sig-name descname"><span class="pre">AlertHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Enhanced alert handler with multiple notification channels</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler.check_cooldown">
+<span class="sig-name descname"><span class="pre">check_cooldown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alert</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#alert_handler.Alert" title="alert_handler.Alert"><span class="pre">Alert</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler.check_cooldown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler.check_cooldown" title="Permalink to this definition"></a></dt>
+<dd><p>Check if alert should be suppressed due to cooldown</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler.cleanup">
+<span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler.cleanup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler.cleanup" title="Permalink to this definition"></a></dt>
+<dd><p>Cleanup resources</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler.create_alert">
+<span class="sig-name descname"><span class="pre">create_alert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packet_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#alert_handler.Alert" title="alert_handler.Alert"><span class="pre">Alert</span></a></span></span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler.create_alert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler.create_alert" title="Permalink to this definition"></a></dt>
+<dd><p>Create an Alert object from packet information</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler.get_alert_stats">
+<span class="sig-name descname"><span class="pre">get_alert_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler.get_alert_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler.get_alert_stats" title="Permalink to this definition"></a></dt>
+<dd><p>Get alert statistics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler.send_alert">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">send_alert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packet_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler.send_alert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler.send_alert" title="Permalink to this definition"></a></dt>
+<dd><p>Main method to send alerts through all channels</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="alert_handler.AlertHandler.setup_alert_logging">
+<span class="sig-name descname"><span class="pre">setup_alert_logging</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/alert_handler.html#AlertHandler.setup_alert_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.AlertHandler.setup_alert_logging" title="Permalink to this definition"></a></dt>
+<dd><p>Setup alert logging directory and file</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="alert_handler.SeverityLevel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alert_handler.</span></span><span class="sig-name descname"><span class="pre">SeverityLevel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/alert_handler.html#SeverityLevel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#alert_handler.SeverityLevel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Severity levels for alerts</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.SeverityLevel.CRITICAL">
+<span class="sig-name descname"><span class="pre">CRITICAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'CRITICAL'</span></em><a class="headerlink" href="#alert_handler.SeverityLevel.CRITICAL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.SeverityLevel.HIGH">
+<span class="sig-name descname"><span class="pre">HIGH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'HIGH'</span></em><a class="headerlink" href="#alert_handler.SeverityLevel.HIGH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.SeverityLevel.INFO">
+<span class="sig-name descname"><span class="pre">INFO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'INFO'</span></em><a class="headerlink" href="#alert_handler.SeverityLevel.INFO" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.SeverityLevel.LOW">
+<span class="sig-name descname"><span class="pre">LOW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'LOW'</span></em><a class="headerlink" href="#alert_handler.SeverityLevel.LOW" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="alert_handler.SeverityLevel.MEDIUM">
+<span class="sig-name descname"><span class="pre">MEDIUM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'MEDIUM'</span></em><a class="headerlink" href="#alert_handler.SeverityLevel.MEDIUM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Rama Abu-Haweleha.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

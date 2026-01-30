@@ -1,0 +1,12 @@
+{
+  "model_path": "models/random_forest_model.pkl",
+  "interface": "eth0",
+  "filter": "ip",
+  "promiscuous": true,
+  "alert_threshold": 0.8,
+  "log_file": "logs/ids.log",
+  "alert_file": "logs/alerts.log",
+  "stats_interval": 60,
+  "max_packets_per_batch": 100,
+  "simulation_mode": false
+}

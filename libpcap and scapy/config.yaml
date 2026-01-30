@@ -1,0 +1,54 @@
+capture:
+  interface: "enp0s3"
+  filter: "ip"
+  promiscuous: true
+  timeout: 30
+  snaplen: 65535
+  buffer_size: 1048576
+
+ml:
+  model_path: "models/randomforest_ids.pkl"
+  scaler_path: "models/scaler.pkl"
+  encoder_path: "models/label_encoder.pkl"
+  feature_names_path: "models/feature_names.json"
+  anomaly_threshold: 0.7
+  confidence_threshold: 0.6
+
+telegram:
+  token: "8382806780:AAEQX65plGY7H04rR0Ssdw6dOIKgt2dCshc"
+  chat_id: "7589392051"
+  enabled: true
+  cooldown_seconds: 60
+  max_message_length: 4096
+
+processing:
+  max_packets_per_flow: 100
+  flow_timeout_seconds: 120
+  min_packets_for_prediction: 5
+  feature_window_size: 50
+  packet_queue_size: 1000
+
+logging:
+  level: "INFO"
+  file: "logs/ids_service.log"
+  max_bytes: 10485760
+  backup_count: 5
+  console_output: true
+
+alerts:
+  severity_levels:
+    CRITICAL: 0.9
+    HIGH: 0.7
+    MEDIUM: 0.5
+    LOW: 0.3
+    INFO: 0.1
+    COOLDOWN: 60
+  enable_console_alerts: true
+  enable_file_logging: true
+  alert_retention_days: 30
+
+attack:
+  ddos_threshold: 0.8
+  portscan_threshold: 0.6
+  brute_force_threshold: 0.7
+  malware_threshold: 0.75

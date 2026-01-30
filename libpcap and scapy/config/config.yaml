@@ -1,0 +1,48 @@
+alerts:
+  alert_retention_days: 30
+  enable_console_alerts: true
+  enable_file_logging: true
+  severity_levels:
+    COOLDOWN: 60
+    CRITICAL: 0.9
+    HIGH: 0.7
+    INFO: 0.1
+    LOW: 0.3
+    MEDIUM: 0.5
+attack:
+  brute_force_threshold: 0.7
+  ddos_threshold: 0.8
+  malware_threshold: 0.75
+  portscan_threshold: 0.6
+capture:
+  buffer_size: 1048576
+  filter: ip
+  interface: eth0
+  promiscuous: true
+  snaplen: 65535
+  timeout: 30
+logging:
+  backup_count: 5
+  console_output: true
+  file: logs/ids_service.log
+  level: INFO
+  max_bytes: 10485760
+ml:
+  anomaly_threshold: 0.7
+  confidence_threshold: 0.6
+  encoder_path: models/label_encoder.pkl
+  feature_names_path: models/feature_names.json
+  model_path: models/randomforest_ids.pkl
+  scaler_path: models/scaler.pkl
+processing:
+  feature_window_size: 50
+  flow_timeout_seconds: 120
+  max_packets_per_flow: 100
+  min_packets_for_prediction: 5
+  packet_queue_size: 1000
+telegram:
+  chat_id: '7589392051'
+  cooldown_seconds: 60
+  enabled: true
+  max_message_length: 4096
+  token: 8382806780:AAEQX65plGY7H04rR0Ssdw6dOIKgt2dCshc

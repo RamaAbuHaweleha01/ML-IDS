@@ -1,0 +1,604 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ids_service module &mdash; ML-Based IDS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ML-Based IDS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">ids_service module</a><ul>
+<li><a class="reference internal" href="#ids_service.ConfigManager"><code class="docutils literal notranslate"><span class="pre">ConfigManager</span></code></a><ul>
+<li><a class="reference internal" href="#ids_service.ConfigManager.interface"><code class="docutils literal notranslate"><span class="pre">ConfigManager.interface</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.filter"><code class="docutils literal notranslate"><span class="pre">ConfigManager.filter</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.promiscuous"><code class="docutils literal notranslate"><span class="pre">ConfigManager.promiscuous</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.alert_threshold"><code class="docutils literal notranslate"><span class="pre">ConfigManager.alert_threshold</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.model_path"><code class="docutils literal notranslate"><span class="pre">ConfigManager.model_path</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.telegram_enabled"><code class="docutils literal notranslate"><span class="pre">ConfigManager.telegram_enabled</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.telegram_token"><code class="docutils literal notranslate"><span class="pre">ConfigManager.telegram_token</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.telegram_chat_id"><code class="docutils literal notranslate"><span class="pre">ConfigManager.telegram_chat_id</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.display_packets"><code class="docutils literal notranslate"><span class="pre">ConfigManager.display_packets</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.display_interval"><code class="docutils literal notranslate"><span class="pre">ConfigManager.display_interval</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.packet_format"><code class="docutils literal notranslate"><span class="pre">ConfigManager.packet_format</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.check_telegram_config"><code class="docutils literal notranslate"><span class="pre">ConfigManager.check_telegram_config()</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.ConfigManager.load_config"><code class="docutils literal notranslate"><span class="pre">ConfigManager.load_config()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ids_service.MLPredictor"><code class="docutils literal notranslate"><span class="pre">MLPredictor</span></code></a><ul>
+<li><a class="reference internal" href="#ids_service.MLPredictor.model_loaded"><code class="docutils literal notranslate"><span class="pre">MLPredictor.model_loaded</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.MLPredictor.model"><code class="docutils literal notranslate"><span class="pre">MLPredictor.model</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.MLPredictor.predict"><code class="docutils literal notranslate"><span class="pre">MLPredictor.predict()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ids_service.PacketDisplay"><code class="docutils literal notranslate"><span class="pre">PacketDisplay</span></code></a><ul>
+<li><a class="reference internal" href="#ids_service.PacketDisplay.format_detailed"><code class="docutils literal notranslate"><span class="pre">PacketDisplay.format_detailed()</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.PacketDisplay.format_simple"><code class="docutils literal notranslate"><span class="pre">PacketDisplay.format_simple()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS</span></code></a><ul>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.config"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.config</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.ml_predictor"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.ml_predictor</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.telegram"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.telegram</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.display"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.display</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.stats"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.stats</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.running"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.running</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.start_capture"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.start_capture()</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.RealTimeIDS.stop"><code class="docutils literal notranslate"><span class="pre">RealTimeIDS.stop()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier</span></code></a><ul>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.token"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.token</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.chat_id"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.chat_id</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.base_url"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.base_url</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.last_alert_time"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.last_alert_time</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.cooldown"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.cooldown</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.send_alert"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.send_alert()</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.TelegramNotifier.test_connection"><code class="docutils literal notranslate"><span class="pre">TelegramNotifier.test_connection()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ids_service.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.setup_logging"><code class="docutils literal notranslate"><span class="pre">setup_logging()</span></code></a></li>
+<li><a class="reference internal" href="#ids_service.signal_handler"><code class="docutils literal notranslate"><span class="pre">signal_handler()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ML-Based IDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ids_service module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ids_service.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ids_service">
+<span id="ids-service-module"></span><h1>ids_service module<a class="headerlink" href="#module-ids_service" title="Permalink to this heading"></a></h1>
+<p>Enhanced ML-IDS Service with Telegram alerts and detailed packet display
+Object-Oriented Programming (OOP) implementation with comprehensive comments</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="ids_service.ConfigManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">ConfigManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#ConfigManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.ConfigManager" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Manages application configuration with Telegram support</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.interface">
+<span class="sig-name descname"><span class="pre">interface</span></span><a class="headerlink" href="#ids_service.ConfigManager.interface" title="Permalink to this definition"></a></dt>
+<dd><p>Network interface for packet capture</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><a class="headerlink" href="#ids_service.ConfigManager.filter" title="Permalink to this definition"></a></dt>
+<dd><p>Packet filter expression</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.promiscuous">
+<span class="sig-name descname"><span class="pre">promiscuous</span></span><a class="headerlink" href="#ids_service.ConfigManager.promiscuous" title="Permalink to this definition"></a></dt>
+<dd><p>Promiscuous mode setting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.alert_threshold">
+<span class="sig-name descname"><span class="pre">alert_threshold</span></span><a class="headerlink" href="#ids_service.ConfigManager.alert_threshold" title="Permalink to this definition"></a></dt>
+<dd><p>ML alert threshold (0.0-1.0)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.model_path">
+<span class="sig-name descname"><span class="pre">model_path</span></span><a class="headerlink" href="#ids_service.ConfigManager.model_path" title="Permalink to this definition"></a></dt>
+<dd><p>Path to ML model file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.telegram_enabled">
+<span class="sig-name descname"><span class="pre">telegram_enabled</span></span><a class="headerlink" href="#ids_service.ConfigManager.telegram_enabled" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram alerts enabled/disabled</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.telegram_token">
+<span class="sig-name descname"><span class="pre">telegram_token</span></span><a class="headerlink" href="#ids_service.ConfigManager.telegram_token" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram bot token</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.telegram_chat_id">
+<span class="sig-name descname"><span class="pre">telegram_chat_id</span></span><a class="headerlink" href="#ids_service.ConfigManager.telegram_chat_id" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram chat ID for alerts</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.display_packets">
+<span class="sig-name descname"><span class="pre">display_packets</span></span><a class="headerlink" href="#ids_service.ConfigManager.display_packets" title="Permalink to this definition"></a></dt>
+<dd><p>Display packets on console</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.display_interval">
+<span class="sig-name descname"><span class="pre">display_interval</span></span><a class="headerlink" href="#ids_service.ConfigManager.display_interval" title="Permalink to this definition"></a></dt>
+<dd><p>Display interval in seconds</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.packet_format">
+<span class="sig-name descname"><span class="pre">packet_format</span></span><a class="headerlink" href="#ids_service.ConfigManager.packet_format" title="Permalink to this definition"></a></dt>
+<dd><p>Packet display format (‘simple’ or ‘detailed’)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.check_telegram_config">
+<span class="sig-name descname"><span class="pre">check_telegram_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#ConfigManager.check_telegram_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.ConfigManager.check_telegram_config" title="Permalink to this definition"></a></dt>
+<dd><p>Validate Telegram configuration and enable/disable accordingly</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.ConfigManager.load_config">
+<span class="sig-name descname"><span class="pre">load_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#ConfigManager.load_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.ConfigManager.load_config" title="Permalink to this definition"></a></dt>
+<dd><p>Load configuration from JSON or YAML file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config_path</strong> (<em>str</em>) – Path to configuration file</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ids_service.MLPredictor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">MLPredictor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#MLPredictor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.MLPredictor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Machine Learning predictor with enhanced features</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.MLPredictor.model_loaded">
+<span class="sig-name descname"><span class="pre">model_loaded</span></span><a class="headerlink" href="#ids_service.MLPredictor.model_loaded" title="Permalink to this definition"></a></dt>
+<dd><p>Whether ML model is loaded</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.MLPredictor.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#ids_service.MLPredictor.model" title="Permalink to this definition"></a></dt>
+<dd><p>Loaded ML model object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.MLPredictor.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packet_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#MLPredictor.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.MLPredictor.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Make prediction on packet data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>packet_info</strong> (<em>dict</em><em>, </em><em>optional</em>) – Packet information dictionary</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(prediction, confidence, severity, attack_type, features)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ids_service.PacketDisplay">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">PacketDisplay</span></span><a class="reference internal" href="_modules/ids_service.html#PacketDisplay"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.PacketDisplay" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Handles packet display formatting with different styles</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.PacketDisplay.format_detailed">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format_detailed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packet_info</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#PacketDisplay.format_detailed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.PacketDisplay.format_detailed" title="Permalink to this definition"></a></dt>
+<dd><p>Format packet in detailed view</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>packet_info</strong> (<em>dict</em>) – Packet information</p></li>
+<li><p><strong>prediction_info</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Prediction results</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Formatted packet string</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.PacketDisplay.format_simple">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format_simple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packet_info</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#PacketDisplay.format_simple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.PacketDisplay.format_simple" title="Permalink to this definition"></a></dt>
+<dd><p>Format packet in simple view</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>packet_info</strong> (<em>dict</em>) – Packet information</p></li>
+<li><p><strong>prediction_info</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Prediction results</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Formatted packet string</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">RealTimeIDS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#RealTimeIDS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.RealTimeIDS" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Enhanced Real-time Intrusion Detection System</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.config">
+<span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#ids_service.RealTimeIDS.config" title="Permalink to this definition"></a></dt>
+<dd><p>Configuration manager instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ids_service.ConfigManager" title="ids_service.ConfigManager">ConfigManager</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.ml_predictor">
+<span class="sig-name descname"><span class="pre">ml_predictor</span></span><a class="headerlink" href="#ids_service.RealTimeIDS.ml_predictor" title="Permalink to this definition"></a></dt>
+<dd><p>ML predictor instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ids_service.MLPredictor" title="ids_service.MLPredictor">MLPredictor</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.telegram">
+<span class="sig-name descname"><span class="pre">telegram</span></span><a class="headerlink" href="#ids_service.RealTimeIDS.telegram" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram notifier instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ids_service.TelegramNotifier" title="ids_service.TelegramNotifier">TelegramNotifier</a> or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.display">
+<span class="sig-name descname"><span class="pre">display</span></span><a class="headerlink" href="#ids_service.RealTimeIDS.display" title="Permalink to this definition"></a></dt>
+<dd><p>Packet display instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ids_service.PacketDisplay" title="ids_service.PacketDisplay">PacketDisplay</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.stats">
+<span class="sig-name descname"><span class="pre">stats</span></span><a class="headerlink" href="#ids_service.RealTimeIDS.stats" title="Permalink to this definition"></a></dt>
+<dd><p>System statistics</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.running">
+<span class="sig-name descname"><span class="pre">running</span></span><a class="headerlink" href="#ids_service.RealTimeIDS.running" title="Permalink to this definition"></a></dt>
+<dd><p>System running state</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.start_capture">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_capture</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#RealTimeIDS.start_capture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.RealTimeIDS.start_capture" title="Permalink to this definition"></a></dt>
+<dd><p>Start enhanced packet capture and analysis loop</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.RealTimeIDS.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#RealTimeIDS.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.RealTimeIDS.stop" title="Permalink to this definition"></a></dt>
+<dd><p>Stop the IDS system</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">TelegramNotifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chat_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#TelegramNotifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.TelegramNotifier" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Handles Telegram notifications with error handling and cooldown</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.token">
+<span class="sig-name descname"><span class="pre">token</span></span><a class="headerlink" href="#ids_service.TelegramNotifier.token" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram bot token</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.chat_id">
+<span class="sig-name descname"><span class="pre">chat_id</span></span><a class="headerlink" href="#ids_service.TelegramNotifier.chat_id" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram chat ID</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.base_url">
+<span class="sig-name descname"><span class="pre">base_url</span></span><a class="headerlink" href="#ids_service.TelegramNotifier.base_url" title="Permalink to this definition"></a></dt>
+<dd><p>Telegram API base URL</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.last_alert_time">
+<span class="sig-name descname"><span class="pre">last_alert_time</span></span><a class="headerlink" href="#ids_service.TelegramNotifier.last_alert_time" title="Permalink to this definition"></a></dt>
+<dd><p>Timestamps of last alerts for cooldown</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.cooldown">
+<span class="sig-name descname"><span class="pre">cooldown</span></span><a class="headerlink" href="#ids_service.TelegramNotifier.cooldown" title="Permalink to this definition"></a></dt>
+<dd><p>Cooldown period between alerts (seconds)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.send_alert">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">send_alert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alert_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#TelegramNotifier.send_alert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.TelegramNotifier.send_alert" title="Permalink to this definition"></a></dt>
+<dd><p>Send alert to Telegram asynchronously</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>alert_data</strong> (<em>dict</em>) – Alert data dictionary</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if alert sent successfully, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ids_service.TelegramNotifier.test_connection">
+<span class="sig-name descname"><span class="pre">test_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#TelegramNotifier.test_connection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.TelegramNotifier.test_connection" title="Permalink to this definition"></a></dt>
+<dd><p>Test Telegram bot connection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if connection successful, False otherwise</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ids_service.main">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.main" title="Permalink to this definition"></a></dt>
+<dd><p>Main entry point for the ML-IDS application</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ids_service.setup_logging">
+<span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">setup_logging</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#setup_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.setup_logging" title="Permalink to this definition"></a></dt>
+<dd><p>Configure logging system with error handling</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Configured logger instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ids_service.signal_handler">
+<span class="sig-prename descclassname"><span class="pre">ids_service.</span></span><span class="sig-name descname"><span class="pre">signal_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ids_service.html#signal_handler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ids_service.signal_handler" title="Permalink to this definition"></a></dt>
+<dd><p>Handle shutdown signals (SIGINT, SIGTERM)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signum</strong> – Signal number</p></li>
+<li><p><strong>frame</strong> – Current stack frame</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Rama Abu-Haweleha.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

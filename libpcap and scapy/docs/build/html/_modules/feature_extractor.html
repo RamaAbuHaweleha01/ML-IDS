@@ -1,0 +1,515 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>feature_extractor &mdash; ML-Based IDS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="../_static/doctools.js?v=888ff710"></script>
+      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ML-Based IDS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ML-Based IDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">feature_extractor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for feature_extractor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Feature extraction module for network flows.</span>
+<span class="sd">Extracts features from packets and aggregates them into flow-based features for ML prediction.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<div class="viewcode-block" id="FlowFeatureExtractor"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FlowFeatureExtractor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts features from network packets and flows for ML prediction.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        flow_timeout (int): Time in seconds before flow is considered expired.</span>
+<span class="sd">        max_packets_per_flow (int): Maximum packets to store per flow.</span>
+<span class="sd">        flow_stats (dict): Statistics for each flow.</span>
+<span class="sd">        last_packet_time (dict): Last packet timestamp for each flow.</span>
+<span class="sd">        packet_buffer (dict): Circular buffer for packet features per flow.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flow_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">120</span><span class="p">,</span> <span class="n">max_packets_per_flow</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flow_timeout</span> <span class="o">=</span> <span class="n">flow_timeout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_packets_per_flow</span> <span class="o">=</span> <span class="n">max_packets_per_flow</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_packet_time</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">max_packets_per_flow</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.create_flow_key"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.create_flow_key">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">create_flow_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create unique flow key from packet information.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info: Dictionary containing packet information.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Flow key string or None if packet doesn&#39;t have required info.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;has_ip&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="n">src_ip</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">)</span>
+        <span class="n">dst_ip</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">)</span>
+        <span class="n">protocol</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">src_ip</span> <span class="ow">and</span> <span class="n">dst_ip</span> <span class="ow">and</span> <span class="n">protocol</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="c1"># For TCP/UDP, include ports</span>
+        <span class="k">if</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">):</span>
+            <span class="n">src_port</span> <span class="o">=</span> <span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span>
+            <span class="n">dst_port</span> <span class="o">=</span> <span class="n">packet_info</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]</span>
+            
+            <span class="c1"># Create bidirectional flow key (order doesn&#39;t matter)</span>
+            <span class="k">if</span> <span class="n">src_ip</span> <span class="o">&lt;</span> <span class="n">dst_ip</span> <span class="ow">or</span> <span class="p">(</span><span class="n">src_ip</span> <span class="o">==</span> <span class="n">dst_ip</span> <span class="ow">and</span> <span class="n">src_port</span> <span class="o">&lt;</span> <span class="n">dst_port</span><span class="p">):</span>
+                <span class="n">flow_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">src_ip</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">src_port</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">dst_ip</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">dst_port</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">protocol</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flow_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dst_ip</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">dst_port</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">src_ip</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">src_port</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">protocol</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For ICMP and other protocols</span>
+            <span class="k">if</span> <span class="n">src_ip</span> <span class="o">&lt;</span> <span class="n">dst_ip</span><span class="p">:</span>
+                <span class="n">flow_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">src_ip</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">dst_ip</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">protocol</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flow_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dst_ip</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">src_ip</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">protocol</span><span class="si">}</span><span class="s1">&#39;</span>
+        
+        <span class="k">return</span> <span class="n">flow_key</span></div>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.extract_packet_features"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.extract_packet_features">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">extract_packet_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract features from a single packet.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            packet_info: Dictionary containing packet information.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with packet features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;timestamp&#39;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()),</span>
+            <span class="s1">&#39;src_ip&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;dst_ip&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;protocol&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;src_port&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;dst_port&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;packet_length&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;ttl&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ttl&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;tos&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tos&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;payload_length&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;payload_length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;ip_id&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ip_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;ip_flags&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ip_flags&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># TCP specific features</span>
+        <span class="k">if</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;has_tcp&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;tcp_flags&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tcp_flags&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;window_size&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tcp_window&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;tcp_seq&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tcp_seq&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;tcp_ack&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tcp_ack&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;tcp_urgptr&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tcp_urgptr&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;tcp_dataofs&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tcp_dataofs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">})</span>
+        <span class="c1"># UDP specific features</span>
+        <span class="k">elif</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;has_udp&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;udp_len&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;udp_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;udp_chksum&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;udp_chksum&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">})</span>
+        <span class="c1"># ICMP specific features</span>
+        <span class="k">elif</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;has_icmp&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;icmp_type&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;icmp_type&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;icmp_code&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;icmp_code&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;icmp_chksum&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;icmp_chksum&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">})</span>
+        
+        <span class="c1"># Calculate inter-arrival time</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]</span>
+        <span class="n">flow_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_flow_key</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">flow_key</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_packet_time</span><span class="p">:</span>
+                <span class="n">features</span><span class="p">[</span><span class="s1">&#39;inter_arrival_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_packet_time</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="p">[</span><span class="s1">&#39;inter_arrival_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_packet_time</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_time</span>
+            
+            <span class="c1"># Store in packet buffer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">features</span></div>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.update_flow_stats"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.update_flow_stats">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">update_flow_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flow_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">packet_features</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update flow statistics with new packet.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            flow_key: Unique flow identifier.</span>
+<span class="sd">            packet_features: Features of the current packet.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Updated flow statistics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># Clean old flows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cleanup_old_flows</span><span class="p">(</span><span class="n">current_time</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize flow stats if needed</span>
+        <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">current_time</span><span class="p">,</span>
+                <span class="s1">&#39;last_time&#39;</span><span class="p">:</span> <span class="n">current_time</span><span class="p">,</span>
+                <span class="s1">&#39;total_packets&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;total_bytes&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;packet_lengths&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;inter_arrival_times&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;protocol&#39;</span><span class="p">:</span> <span class="n">packet_features</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;src_ip&#39;</span><span class="p">:</span> <span class="n">packet_features</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;dst_ip&#39;</span><span class="p">:</span> <span class="n">packet_features</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;src_port&#39;</span><span class="p">:</span> <span class="n">packet_features</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;dst_port&#39;</span><span class="p">:</span> <span class="n">packet_features</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s1">&#39;tcp_flags&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;ttls&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;window_sizes&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;payload_lengths&#39;</span><span class="p">:</span> <span class="p">[]</span>
+            <span class="p">}</span>
+        
+        <span class="n">flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+        
+        <span class="c1"># Update statistics</span>
+        <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;last_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_time</span>
+        <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_packets&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_bytes&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;packet_length&#39;</span><span class="p">]</span>
+        <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;packet_lengths&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;packet_length&#39;</span><span class="p">])</span>
+        
+        <span class="c1"># Collect various features</span>
+        <span class="k">if</span> <span class="s1">&#39;inter_arrival_time&#39;</span> <span class="ow">in</span> <span class="n">packet_features</span><span class="p">:</span>
+            <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;inter_arrival_times&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;inter_arrival_time&#39;</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;tcp_flags&#39;</span> <span class="ow">in</span> <span class="n">packet_features</span><span class="p">:</span>
+            <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;tcp_flags&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;tcp_flags&#39;</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;ttl&#39;</span> <span class="ow">in</span> <span class="n">packet_features</span><span class="p">:</span>
+            <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;ttls&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;ttl&#39;</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;window_size&#39;</span> <span class="ow">in</span> <span class="n">packet_features</span><span class="p">:</span>
+            <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;window_sizes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;window_size&#39;</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;payload_length&#39;</span> <span class="ow">in</span> <span class="n">packet_features</span><span class="p">:</span>
+            <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;payload_lengths&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet_features</span><span class="p">[</span><span class="s1">&#39;payload_length&#39;</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">flow</span></div>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.get_flow_features"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.get_flow_features">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_flow_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flow_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract ML features from flow statistics.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            flow_key: Unique flow identifier.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of feature values for ML model (78 features based on CIC-IDS2017).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="n">flow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_packets&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>  <span class="c1"># Need minimum packets for meaningful features</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># 1. Basic Flow Features (10 features)</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_packets&#39;</span><span class="p">])</span>  <span class="c1"># 0: Total Fwd Packets</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_bytes&#39;</span><span class="p">])</span>     <span class="c1"># 1: Total Length of Fwd Packets</span>
+            
+            <span class="c1"># Count forward packets</span>
+            <span class="n">fwd_packets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span> 
+                              <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;src_ip&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;src_ip&#39;</span><span class="p">]])</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fwd_packets</span><span class="p">)</span>  <span class="c1"># 2: Fwd Packet Length Total</span>
+            
+            <span class="c1"># 2. Duration Features (4 features)</span>
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;last_time&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>  <span class="c1"># 3: Flow Duration</span>
+            
+            <span class="k">if</span> <span class="n">duration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_packets&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">duration</span><span class="p">)</span>  <span class="c1"># 4: Flow Packets/s</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;total_bytes&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">duration</span><span class="p">)</span>    <span class="c1"># 5: Flow Bytes/s</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 3. Packet Length Statistics (20 features)</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;packet_lengths&#39;</span><span class="p">]:</span>
+                <span class="n">lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;packet_lengths&#39;</span><span class="p">])</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lengths</span><span class="p">)))</span>   <span class="c1"># 6: Packet Length Mean</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">lengths</span><span class="p">)))</span>    <span class="c1"># 7: Packet Length Std</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">lengths</span><span class="p">)))</span>    <span class="c1"># 8: Packet Length Variance</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">lengths</span><span class="p">)))</span>    <span class="c1"># 9: Packet Length Min</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lengths</span><span class="p">)))</span>    <span class="c1"># 10: Packet Length Max</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 4. Inter-Arrival Time Statistics (10 features)</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;inter_arrival_times&#39;</span><span class="p">]:</span>
+                <span class="n">iats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;inter_arrival_times&#39;</span><span class="p">])</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">iats</span><span class="p">)))</span>   <span class="c1"># 11: IAT Mean</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">iats</span><span class="p">)))</span>    <span class="c1"># 12: IAT Std</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">iats</span><span class="p">)))</span>    <span class="c1"># 13: IAT Min</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">iats</span><span class="p">)))</span>    <span class="c1"># 14: IAT Max</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">iats</span><span class="p">)))</span>    <span class="c1"># 15: Total IAT</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 5. TCP Flag Statistics (6 features)</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;tcp_flags&#39;</span><span class="p">]:</span>
+                <span class="n">flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;tcp_flags&#39;</span><span class="p">])</span>
+                <span class="n">syn_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="mh">0x02</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">ack_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="mh">0x10</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">fin_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="mh">0x01</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">rst_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="mh">0x04</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">psh_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="mh">0x08</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">urg_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="mh">0x20</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+                
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">syn_count</span><span class="p">,</span> <span class="n">ack_count</span><span class="p">,</span> <span class="n">fin_count</span><span class="p">,</span> 
+                               <span class="n">rst_count</span><span class="p">,</span> <span class="n">psh_count</span><span class="p">,</span> <span class="n">urg_count</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 6. TTL Statistics (5 features)</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;ttls&#39;</span><span class="p">]:</span>
+                <span class="n">ttls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;ttls&#39;</span><span class="p">])</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ttls</span><span class="p">)))</span>   <span class="c1"># 22: TTL Mean</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ttls</span><span class="p">)))</span>    <span class="c1"># 23: TTL Std</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ttls</span><span class="p">)))</span>    <span class="c1"># 24: TTL Min</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ttls</span><span class="p">)))</span>    <span class="c1"># 25: TTL Max</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ttls</span><span class="p">))))</span>  <span class="c1"># 26: Unique TTLs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 7. Window Size Statistics (5 features)</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;window_sizes&#39;</span><span class="p">]:</span>
+                <span class="n">windows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;window_sizes&#39;</span><span class="p">])</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">windows</span><span class="p">)))</span>   <span class="c1"># 27: Window Size Mean</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">windows</span><span class="p">)))</span>    <span class="c1"># 28: Window Size Std</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">windows</span><span class="p">)))</span>    <span class="c1"># 29: Window Size Min</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">windows</span><span class="p">)))</span>    <span class="c1"># 30: Window Size Max</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">windows</span><span class="p">))))</span>  <span class="c1"># 31: Unique Window Sizes</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 8. Payload Statistics (10 features)</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;payload_lengths&#39;</span><span class="p">]:</span>
+                <span class="n">payloads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;payload_lengths&#39;</span><span class="p">])</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">payloads</span><span class="p">)))</span>          <span class="c1"># 32: Total Payload</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">payloads</span><span class="p">)))</span>         <span class="c1"># 33: Payload Mean</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">payloads</span><span class="p">)))</span>          <span class="c1"># 34: Payload Std</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">payloads</span><span class="p">)))</span>          <span class="c1"># 35: Payload Min</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">payloads</span><span class="p">)))</span>          <span class="c1"># 36: Payload Max</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">payloads</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)))</span>      <span class="c1"># 37: Packets with Payload</span>
+                
+                <span class="c1"># Payload rate</span>
+                <span class="k">if</span> <span class="n">duration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">payloads</span><span class="p">)</span> <span class="o">/</span> <span class="n">duration</span><span class="p">))</span>  <span class="c1"># 38: Payload Rate</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+                
+                <span class="c1"># Payload entropy approximation</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_payload_entropy</span><span class="p">(</span><span class="n">flow_key</span><span class="p">))</span>  <span class="c1"># 39: Payload Entropy</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">payloads</span><span class="p">))))</span>                  <span class="c1"># 40: Unique Payload Sizes</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">payloads</span><span class="p">)))</span>                 <span class="c1"># 41: Payload Median</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># 9. Protocol and Port Features (8 features)</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;protocol&#39;</span><span class="p">]))</span>  <span class="c1"># 42: Protocol</span>
+            
+            <span class="c1"># Port statistics</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1024</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># 43: Well-known Source Port</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]))</span>                  <span class="c1"># 44: Source Port</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1024</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># 45: Well-known Dest Port</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]))</span>                  <span class="c1"># 46: Destination Port</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+            
+            <span class="c1"># Port ratio</span>
+            <span class="k">if</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">flow</span><span class="p">[</span><span class="s1">&#39;dst_port&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">)))</span>  <span class="c1"># 47: Port Ratio</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+            
+            <span class="c1"># Is ephemeral port</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="k">if</span> <span class="mi">49152</span> <span class="o">&lt;=</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;src_port&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">65535</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># 48: Ephemeral Source Port</span>
+            
+            <span class="k">return</span> <span class="n">features</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error extracting flow features: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_payload_entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flow_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate entropy of payloads in a flow.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mf">0.0</span>
+            
+            <span class="c1"># Collect all payloads</span>
+            <span class="n">all_payloads</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">packet</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="s1">&#39;payload&#39;</span> <span class="ow">in</span> <span class="n">packet</span> <span class="ow">and</span> <span class="n">packet</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]:</span>
+                    <span class="n">all_payloads</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">])</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">all_payloads</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mf">0.0</span>
+            
+            <span class="c1"># Calculate byte frequency</span>
+            <span class="n">byte_counts</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">total_bytes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_payloads</span><span class="p">)</span>
+            
+            <span class="k">for</span> <span class="n">byte_val</span> <span class="ow">in</span> <span class="n">all_payloads</span><span class="p">:</span>
+                <span class="n">byte_counts</span><span class="p">[</span><span class="n">byte_val</span><span class="p">]</span> <span class="o">=</span> <span class="n">byte_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">byte_val</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            
+            <span class="c1"># Calculate entropy</span>
+            <span class="n">entropy</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">byte_counts</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">probability</span> <span class="o">=</span> <span class="n">count</span> <span class="o">/</span> <span class="n">total_bytes</span>
+                <span class="n">entropy</span> <span class="o">-=</span> <span class="n">probability</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">probability</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">entropy</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cleanup_old_flows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove flows that have timed out.&quot;&quot;&quot;</span>
+        <span class="n">flows_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">flow_key</span><span class="p">,</span> <span class="n">flow</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">flow</span><span class="p">[</span><span class="s1">&#39;last_time&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_timeout</span><span class="p">:</span>
+                <span class="n">flows_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow_key</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">flow_key</span> <span class="ow">in</span> <span class="n">flows_to_remove</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_packet_time</span><span class="p">:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_packet_time</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">flows_to_remove</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cleaned up </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">flows_to_remove</span><span class="p">)</span><span class="si">}</span><span class="s2"> old flows&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.reset_flow"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.reset_flow">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset_flow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flow_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset flow statistics after prediction.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">flow_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packet_buffer</span><span class="p">[</span><span class="n">flow_key</span><span class="p">]</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.get_all_flow_keys"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.get_all_flow_keys">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_flow_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of all active flow keys.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+    
+<div class="viewcode-block" id="FlowFeatureExtractor.get_flow_count"><a class="viewcode-back" href="../feature_extractor.html#feature_extractor.FlowFeatureExtractor.get_flow_count">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_flow_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get number of active flows.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flow_stats</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Rama Abu-Haweleha.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

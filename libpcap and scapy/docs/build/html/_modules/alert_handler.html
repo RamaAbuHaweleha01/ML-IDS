@@ -1,0 +1,494 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>alert_handler &mdash; ML-Based IDS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="../_static/doctools.js?v=888ff710"></script>
+      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ML-Based IDS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ML-Based IDS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">alert_handler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for alert_handler</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Alert handler module for sending alerts via multiple channels (Telegram, console, file).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">asdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<div class="viewcode-block" id="SeverityLevel"><a class="viewcode-back" href="../alert_handler.html#alert_handler.SeverityLevel">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">SeverityLevel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Severity levels for alerts&quot;&quot;&quot;</span>
+    <span class="n">INFO</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span>
+    <span class="n">LOW</span> <span class="o">=</span> <span class="s2">&quot;LOW&quot;</span>
+    <span class="n">MEDIUM</span> <span class="o">=</span> <span class="s2">&quot;MEDIUM&quot;</span>
+    <span class="n">HIGH</span> <span class="o">=</span> <span class="s2">&quot;HIGH&quot;</span>
+    <span class="n">CRITICAL</span> <span class="o">=</span> <span class="s2">&quot;CRITICAL&quot;</span></div>
+
+<div class="viewcode-block" id="Alert"><a class="viewcode-back" href="../alert_handler.html#alert_handler.Alert">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Alert</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Alert data structure&quot;&quot;&quot;</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">attack_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">severity</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">flow_key</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">src_ip</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">dst_ip</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">src_port</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">dst_port</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">protocol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">packet_length</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">additional_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="n">telegram_sent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">console_displayed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">logged_to_file</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    
+<div class="viewcode-block" id="Alert.to_dict"><a class="viewcode-back" href="../alert_handler.html#alert_handler.Alert.to_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert alert to dictionary&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="AlertHandler"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">AlertHandler</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enhanced alert handler with multiple notification channels&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        
+        <span class="c1"># Telegram configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">telegram</span><span class="o">.</span><span class="n">token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_id</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">telegram</span><span class="o">.</span><span class="n">chat_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_telegram_enabled</span><span class="p">()</span>
+        
+        <span class="c1"># Alert cooldown mechanism</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_cooldown</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooldown_period</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">alerts</span><span class="o">.</span><span class="n">severity_levels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;COOLDOWN&#39;</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>  <span class="c1"># seconds</span>
+        
+        <span class="c1"># Alert history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Alert</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_history</span> <span class="o">=</span> <span class="mi">1000</span>
+        
+        <span class="c1"># Thread pool for async operations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        
+        <span class="c1"># Setup logging file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_alert_logging</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert Handler initialized - Telegram: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;ENABLED&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;DISABLED&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AlertHandler.setup_alert_logging"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler.setup_alert_logging">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">setup_alert_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup alert logging directory and file&quot;&quot;&quot;</span>
+        <span class="n">log_dir</span> <span class="o">=</span> <span class="s1">&#39;logs&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">log_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">log_dir</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_log_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="s1">&#39;alerts.log&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alert_json_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="s1">&#39;alerts.json&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="AlertHandler.create_alert"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler.create_alert">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">create_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Alert</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Alert object from packet information&quot;&quot;&quot;</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        
+        <span class="c1"># Extract basic information</span>
+        <span class="n">src_ip</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_ip&#39;</span><span class="p">,</span> <span class="s1">&#39;0.0.0.0&#39;</span><span class="p">)</span>
+        <span class="n">dst_ip</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_ip&#39;</span><span class="p">,</span> <span class="s1">&#39;0.0.0.0&#39;</span><span class="p">)</span>
+        <span class="n">src_port</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;src_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">dst_port</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dst_port&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">protocol_num</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1"># Map protocol number to name</span>
+        <span class="n">protocol_map</span> <span class="o">=</span> <span class="p">{</span><span class="mi">6</span><span class="p">:</span> <span class="s1">&#39;TCP&#39;</span><span class="p">,</span> <span class="mi">17</span><span class="p">:</span> <span class="s1">&#39;UDP&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;ICMP&#39;</span><span class="p">}</span>
+        <span class="n">protocol</span> <span class="o">=</span> <span class="n">protocol_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">protocol_num</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Proto-</span><span class="si">{</span><span class="n">protocol_num</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Create flow key</span>
+        <span class="n">flow_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">src_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">src_port</span><span class="si">}</span><span class="s2">→</span><span class="si">{</span><span class="n">dst_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">dst_port</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">protocol</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="c1"># Determine severity level</span>
+        <span class="n">confidence</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;confidence&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">attack_type</span> <span class="o">=</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attack_type&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">)</span>
+        <span class="n">severity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_severity</span><span class="p">(</span><span class="n">confidence</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">Alert</span><span class="p">(</span>
+            <span class="n">timestamp</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+            <span class="n">attack_type</span><span class="o">=</span><span class="n">attack_type</span><span class="p">,</span>
+            <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">severity</span><span class="p">,</span> <span class="n">SeverityLevel</span><span class="p">)</span> <span class="k">else</span> <span class="n">severity</span><span class="p">,</span>
+            <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">,</span>
+            <span class="n">flow_key</span><span class="o">=</span><span class="n">flow_key</span><span class="p">,</span>
+            <span class="n">src_ip</span><span class="o">=</span><span class="n">src_ip</span><span class="p">,</span>
+            <span class="n">dst_ip</span><span class="o">=</span><span class="n">dst_ip</span><span class="p">,</span>
+            <span class="n">src_port</span><span class="o">=</span><span class="n">src_port</span><span class="p">,</span>
+            <span class="n">dst_port</span><span class="o">=</span><span class="n">dst_port</span><span class="p">,</span>
+            <span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">,</span>
+            <span class="n">packet_length</span><span class="o">=</span><span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;packet_length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">additional_info</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;features&#39;</span><span class="p">,</span> <span class="p">{}),</span>
+                <span class="s1">&#39;prediction&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;prediction&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;model_confidence&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;confidence&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="s1">&#39;window_stats&#39;</span><span class="p">:</span> <span class="n">packet_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;window_stats&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_severity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">attack_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SeverityLevel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine severity level based on confidence and attack type&quot;&quot;&quot;</span>
+        <span class="c1"># Adjust thresholds based on attack type</span>
+        <span class="k">if</span> <span class="n">attack_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;DDoS&#39;</span><span class="p">,</span> <span class="s1">&#39;R2L&#39;</span><span class="p">,</span> <span class="s1">&#39;U2R&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.8</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">CRITICAL</span>
+            <span class="k">elif</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.6</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">HIGH</span>
+            <span class="k">elif</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.4</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">MEDIUM</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">LOW</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.9</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">CRITICAL</span>
+            <span class="k">elif</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.7</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">HIGH</span>
+            <span class="k">elif</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">MEDIUM</span>
+            <span class="k">elif</span> <span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.3</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">LOW</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">SeverityLevel</span><span class="o">.</span><span class="n">INFO</span>
+    
+<div class="viewcode-block" id="AlertHandler.check_cooldown"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler.check_cooldown">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">check_cooldown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert</span><span class="p">:</span> <span class="n">Alert</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if alert should be suppressed due to cooldown&quot;&quot;&quot;</span>
+        <span class="n">alert_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">flow_key</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+            <span class="n">last_alert_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_cooldown</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alert_key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">last_alert_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooldown_period</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert on cooldown: </span><span class="si">{</span><span class="n">alert_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            
+            <span class="c1"># Update cooldown time</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alert_cooldown</span><span class="p">[</span><span class="n">alert_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_time</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="AlertHandler.send_alert"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler.send_alert">[docs]</a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Main method to send alerts through all channels&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Create alert object</span>
+            <span class="n">alert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_alert</span><span class="p">(</span><span class="n">packet_info</span><span class="p">)</span>
+            
+            <span class="c1"># Check cooldown</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_cooldown</span><span class="p">(</span><span class="n">alert</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert suppressed (cooldown): </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            
+            <span class="c1"># Send alerts in parallel</span>
+            <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_send_telegram_alert</span><span class="p">(</span><span class="n">alert</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_display_console_alert</span><span class="p">(</span><span class="n">alert</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_alert_to_file</span><span class="p">(</span><span class="n">alert</span><span class="p">)</span>
+            <span class="p">]</span>
+            
+            <span class="c1"># Run tasks concurrently</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="c1"># Update alert status</span>
+            <span class="n">alert</span><span class="o">.</span><span class="n">telegram_sent</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">bool</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="n">alert</span><span class="o">.</span><span class="n">console_displayed</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">bool</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="n">alert</span><span class="o">.</span><span class="n">logged_to_file</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="nb">bool</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+            
+            <span class="c1"># Add to history</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alert</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_history</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            
+            <span class="c1"># Save to JSON file periodically</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_save_alerts_to_json</span><span class="p">()</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert processed: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}</span><span class="s2"> - Severity: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error sending alert: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_send_telegram_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert</span><span class="p">:</span> <span class="n">Alert</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Send alert to Telegram (async version)&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Run blocking request in thread pool</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_send_telegram_sync</span><span class="p">,</span>
+                <span class="n">alert</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram alert error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_send_telegram_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert</span><span class="p">:</span> <span class="n">Alert</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronous Telegram sending&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://api.telegram.org/bot</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">telegram_token</span><span class="si">}</span><span class="s2">/sendMessage&quot;</span>
+            
+            <span class="c1"># Format message with HTML</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_telegram_message</span><span class="p">(</span><span class="n">alert</span><span class="p">)</span>
+            
+            <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;chat_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">,</span>
+                <span class="s1">&#39;parse_mode&#39;</span><span class="p">:</span> <span class="s1">&#39;HTML&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;disable_web_page_preview&#39;</span><span class="p">:</span> <span class="kc">True</span>
+            <span class="p">}</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram alert sent: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown error&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram API error: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+                
+        <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">Timeout</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Telegram request timeout&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Telegram request failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_telegram_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert</span><span class="p">:</span> <span class="n">Alert</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Format alert message for Telegram with rich formatting&quot;&quot;&quot;</span>
+        <span class="c1"># Emoji mapping</span>
+        <span class="n">severity_emoji</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="s1">&#39;🛑&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="s1">&#39;🔴&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="s1">&#39;🟡&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LOW&#39;</span><span class="p">:</span> <span class="s1">&#39;🟢&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="s1">&#39;ℹ️&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="n">emoji</span> <span class="o">=</span> <span class="n">severity_emoji</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="p">,</span> <span class="s1">&#39;📡&#39;</span><span class="p">)</span>
+        
+        <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">emoji</span><span class="si">}</span><span class="s2"> &lt;b&gt;IDS ALERT DETECTED&lt;/b&gt; </span><span class="si">{</span><span class="n">emoji</span><span class="si">}</span>
+
+<span class="s2">&lt;b&gt;Time:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span>
+<span class="s2">&lt;b&gt;Attack Type:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}</span>
+<span class="s2">&lt;b&gt;Severity:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="si">}</span>
+<span class="s2">&lt;b&gt;Confidence:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">confidence</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span>
+
+<span class="s2">&lt;b&gt;Network Information:&lt;/b&gt;</span>
+<span class="s2">• &lt;b&gt;Source:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">src_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">src_port</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Destination:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">dst_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">dst_port</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Protocol:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">protocol</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Packet Size:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">packet_length</span><span class="si">}</span><span class="s2"> bytes</span>
+
+<span class="s2">&lt;b&gt;Detection Details:&lt;/b&gt;</span>
+<span class="s2">• &lt;b&gt;Flow:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">flow_key</span><span class="si">}</span>
+<span class="s2">• &lt;b&gt;Timestamp:&lt;/b&gt; </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span>
+
+<span class="s2">&lt;b&gt;Recommended Action:&lt;/b&gt;</span>
+<span class="si">{</span><span class="s1">&#39;🚨 IMMEDIATE ACTION REQUIRED&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;CRITICAL&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;HIGH&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;📊 Monitor and investigate&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">&#39;MEDIUM&#39;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;📝 Log and review&#39;</span><span class="si">}</span>
+
+<span class="s2">&lt;i&gt;Automated alert from Real-time IDS System&lt;/i&gt;&quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="n">message</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_display_console_alert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert</span><span class="p">:</span> <span class="n">Alert</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Display alert in console with colors&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Color codes based on severity</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span><span class="p">,</span>  <span class="c1"># Red</span>
+                <span class="s1">&#39;HIGH&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[93m&#39;</span><span class="p">,</span>      <span class="c1"># Yellow</span>
+                <span class="s1">&#39;MEDIUM&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[96m&#39;</span><span class="p">,</span>    <span class="c1"># Cyan</span>
+                <span class="s1">&#39;LOW&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[92m&#39;</span><span class="p">,</span>       <span class="c1"># Green</span>
+                <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[94m&#39;</span>       <span class="c1"># Blue</span>
+            <span class="p">}</span>
+            
+            <span class="n">reset</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span><span class="p">)</span>
+            
+            <span class="c1"># Format timestamp</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">alert</span><span class="o">.</span><span class="n">timestamp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="s1">&#39;+00:00&#39;</span><span class="p">))</span>
+            <span class="n">display_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">)</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">color</span><span class="si">}{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">80</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}{</span><span class="n">display_time</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="si">}</span><span class="s2"> ALERT - </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">Source: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">src_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">src_port</span><span class="si">}</span><span class="s2"> -&gt; Destination: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">dst_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">dst_port</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">Protocol: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">protocol</span><span class="si">}</span><span class="s2"> | Size: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">packet_length</span><span class="si">}</span><span class="s2"> bytes | Confidence: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">confidence</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}</span><span class="s2">Flow: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">flow_key</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">color</span><span class="si">}{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">80</span><span class="si">}{</span><span class="n">reset</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="kc">True</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Console display error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_log_alert_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alert</span><span class="p">:</span> <span class="n">Alert</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log alert to text file&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">log_entry</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">] &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;TYPE: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;SEVERITY: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">severity</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;CONFIDENCE: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">confidence</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;FLOW: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">flow_key</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;SRC: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">src_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">src_port</span><span class="si">}</span><span class="s2"> | &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;DST: </span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">dst_ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">alert</span><span class="o">.</span><span class="n">dst_port</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alert_log_file</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">log_entry</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="kc">True</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File logging error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_alerts_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save alert history to JSON file&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alert_json_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">alerts_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">alert</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">alert</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="p">[</span><span class="o">-</span><span class="mi">100</span><span class="p">:]]</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">alerts_data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;JSON save error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AlertHandler.get_alert_stats"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler.get_alert_stats">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_alert_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get alert statistics&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+            <span class="n">total_alerts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="p">)</span>
+            
+            <span class="c1"># Count by severity</span>
+            <span class="n">severity_counts</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">severity</span> <span class="ow">in</span> <span class="n">SeverityLevel</span><span class="p">:</span>
+                <span class="n">severity_counts</span><span class="p">[</span><span class="n">severity</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                    <span class="mi">1</span> <span class="k">for</span> <span class="n">alert</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span> <span class="k">if</span> <span class="n">alert</span><span class="o">.</span><span class="n">severity</span> <span class="o">==</span> <span class="n">severity</span><span class="o">.</span><span class="n">value</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Count by attack type</span>
+            <span class="n">attack_counts</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">alert</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span><span class="p">:</span>
+                <span class="n">attack_type</span> <span class="o">=</span> <span class="n">alert</span><span class="o">.</span><span class="n">attack_type</span>
+                <span class="n">attack_counts</span><span class="p">[</span><span class="n">attack_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">attack_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attack_type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s1">&#39;total_alerts&#39;</span><span class="p">:</span> <span class="n">total_alerts</span><span class="p">,</span>
+                <span class="s1">&#39;severity_distribution&#39;</span><span class="p">:</span> <span class="n">severity_counts</span><span class="p">,</span>
+                <span class="s1">&#39;attack_type_distribution&#39;</span><span class="p">:</span> <span class="n">attack_counts</span><span class="p">,</span>
+                <span class="s1">&#39;telegram_enabled&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">telegram_enabled</span><span class="p">,</span>
+                <span class="s1">&#39;telegram_success_rate&#39;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alert_history</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">telegram_sent</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">total_alerts</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">}</span></div>
+    
+<div class="viewcode-block" id="AlertHandler.cleanup"><a class="viewcode-back" href="../alert_handler.html#alert_handler.AlertHandler.cleanup">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cleanup resources&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_alerts_to_json</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Alert Handler cleaned up&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Rama Abu-Haweleha.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
