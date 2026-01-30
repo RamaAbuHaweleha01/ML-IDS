@@ -15,8 +15,8 @@ ml:
   confidence_threshold: 0.6
 
 telegram:
-  token: "8382806780:AAEQX65plGY7H04rR0Ssdw6dOIKgt2dCshc"
-  chat_id: "7589392051"
+  token: "Write_Your_Bot_Token"
+  chat_id: "Write_Your_Chat_ID"
   enabled: true
   cooldown_seconds: 60
   max_message_length: 4096
